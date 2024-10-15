@@ -19,7 +19,7 @@ export default function ValueSelector({
     if (type === "date") {
       const date = new Date(valueSelected);
       const isoString = date.toISOString();
-      updateValue(isoString);
+      updateValue(`'${isoString}'`);
     } else {
       updateValue(valueSelected);
     }
