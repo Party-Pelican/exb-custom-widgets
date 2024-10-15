@@ -1,23 +1,14 @@
-import {
-  DataSource,
-  DataSourceManager,
-  React,
-  type AllWidgetProps,
-} from "jimu-core";
+import { DataSourceManager, React, type AllWidgetProps } from "jimu-core";
 import { type IMConfig } from "../config";
-import {
-  JimuLayerView,
-  JimuMapView,
-  JimuMapViewComponent,
-  WebMapDataSource,
-} from "jimu-arcgis";
+import { JimuLayerView, JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
 import { MouseEvent, useState } from "react";
 import { Dropdown, DropdownButton, DropdownItem, DropdownMenu } from "jimu-ui";
 import ConditionController from "./conditionController";
 import { type IMUseDataSource } from "jimu-core";
 
 const Widget = (props: AllWidgetProps<IMConfig>) => {
-  const [dataSources, setDataSources] = useState<DataSource[]>([]);
+  const [activeView, setActiveView] = useState<JimuMapView>(null);
+  const [jimuLayerViews, setJimuLayerViews] = useState<JimuLayerView[]>([]);
   const [selectedDataSource, setSelectedDataSource] = useState({
     dataSource: null,
     schema: null,
@@ -25,56 +16,56 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   function onActiveViewChange(activeView: JimuMapView) {
     if (activeView) {
+      setActiveView(activeView);
       activeView.whenAllJimuLayerViewLoaded().then((jimuLayerViews) => {
-        const layerDataSourcePromises = Object.values(jimuLayerViews).map(
-          (jimuLayerView) =>
-            DataSourceManager.getInstance().createDataSourceByUseDataSource({
-              dataSourceId: jimuLayerView.layerDataSourceId,
-              mainDataSourceId: jimuLayerView.layerDataSourceId,
-              rootDataSourceId: activeView.dataSourceId,
-            } as IMUseDataSource)
-        );
-
-        Promise.all(layerDataSourcePromises).then((dataSources) => {
-          setDataSources(dataSources);
-        });
+        setJimuLayerViews(Object.values(jimuLayerViews));
       });
     } else {
-      setDataSources([]);
+      setActiveView(null);
+      setJimuLayerViews([]);
     }
   }
 
   function handleDataSourceSelection(mouseEvent: MouseEvent<any, MouseEvent>) {
-    const ds = dataSources.find(
-      (ds) => ds.id === (mouseEvent.target as HTMLInputElement).value
-    );
-
-    setSelectedDataSource({ dataSource: ds, schema: ds.getSchema() });
+    DataSourceManager.getInstance()
+      .createDataSourceByUseDataSource({
+        dataSourceId: (mouseEvent.target as HTMLInputElement).value,
+        mainDataSourceId: (mouseEvent.target as HTMLInputElement).value,
+        rootDataSourceId: activeView.dataSourceId,
+      } as IMUseDataSource)
+      .then((dataSource) => {
+        setSelectedDataSource({
+          dataSource: dataSource,
+          schema: dataSource.getSchema(),
+        });
+      });
   }
 
   return (
     <div className="m-2">
       <p>QueryBuilder Widget</p>
 
-      {dataSources.length > 0 && (
+      {activeView && jimuLayerViews.length > 0 && (
         <Dropdown activeIcon menuItemCheckMode="singleCheck" menuRole="listbox">
           <DropdownButton>
             {selectedDataSource.schema?.label || "Select a Datasource"}
           </DropdownButton>
           <DropdownMenu>
-            {dataSources.length > 0 &&
-              dataSources.map((dataSource) => {
-                return (
-                  <DropdownItem
-                    active={dataSource.id === selectedDataSource.dataSource?.id}
-                    value={dataSource.id}
-                    key={dataSource.id}
-                    onClick={handleDataSourceSelection}
-                  >
-                    {dataSource.getSchema().label}
-                  </DropdownItem>
-                );
-              })}
+            {jimuLayerViews.map((jimuLayerView) => {
+              return (
+                <DropdownItem
+                  active={
+                    jimuLayerView.layerDataSourceId ===
+                    selectedDataSource.dataSource?.id
+                  }
+                  value={jimuLayerView.layerDataSourceId}
+                  key={jimuLayerView.layerDataSourceId}
+                  onClick={handleDataSourceSelection}
+                >
+                  {jimuLayerView.layer.title}
+                </DropdownItem>
+              );
+            })}
           </DropdownMenu>
         </Dropdown>
       )}

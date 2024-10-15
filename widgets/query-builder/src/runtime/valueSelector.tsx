@@ -12,22 +12,39 @@ export default function ValueSelector({
 }) {
   let inputElement: ReactElement;
 
-  function handleValueChange(valueSelected: string | number | Date) {
-    updateValue(valueSelected);
+  function handleValueChange(
+    valueSelected: string | number | Date,
+    type: string
+  ) {
+    if (type === "date") {
+      const date = new Date(valueSelected);
+      const isoString = date.toISOString();
+      updateValue(isoString);
+    } else {
+      updateValue(valueSelected);
+    }
   }
 
   switch (type) {
     case "STRING":
-      inputElement = <TextInput onAcceptValue={handleValueChange} />;
+      inputElement = (
+        <TextInput
+          onAcceptValue={(value) => handleValueChange(value, "text")}
+        />
+      );
       break;
     case "NUMBER":
-      inputElement = <NumericInput onAcceptValue={handleValueChange} />;
+      inputElement = (
+        <NumericInput
+          onAcceptValue={(value) => handleValueChange(value, "number")}
+        />
+      );
       break;
     case "DATE":
       inputElement = (
         <DatePicker
           runtime
-          onChange={handleValueChange}
+          onChange={(value) => handleValueChange(value, "date")}
           selectedDate={new Date()}
         />
       );

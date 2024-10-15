@@ -69,7 +69,9 @@ const buildEsriQuery = (conditions) => {
 
 function isValidQuery(queryString: string) {
   // Step 1: Split the query string into parts
-  const queryParts = queryString.split(" ");
+  const queryParts = queryString
+    .split(" ")
+    .filter((part) => !part.includes("AND"));
   console.log(queryParts);
 
   // Step 2: Process in chunks of three
@@ -120,11 +122,8 @@ export default function ConditionController(props: ConditionControllerProps) {
           widgetId: props.widgetId,
         }
       )
-      .then((result) => {
-        console.log(result);
-      })
       .catch((error) => {
-        console.log(error);
+        console.error("Error Querying Data. ", error);
       });
   }
 
