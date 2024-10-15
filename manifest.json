@@ -1,0 +1,7 @@
+{
+  "name": "custom-widgets",
+  "type": "exb-web-extension-repo",
+  "description": "This is a repo for my custom widgets.",
+  "copyright": "",
+  "license": "http://www.apache.org/licenses/LICENSE-2.0"
+}
