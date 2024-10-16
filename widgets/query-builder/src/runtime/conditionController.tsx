@@ -1,5 +1,6 @@
 import {
   DataSource,
+  FeatureLayerDataSource,
   QueriableDataSource,
   React,
   SqlQueryParams,
@@ -7,6 +8,8 @@ import {
 import { Button } from "jimu-ui";
 import { useState } from "react";
 import Condition from "./condition";
+import * as sql from "@arcgis/core/core/sql.js";
+import { error } from "console";
 
 export type QueryCondition = Partial<{
   field: string;
@@ -30,7 +33,7 @@ type ConditionControllerProps = {
   widgetId: string;
 };
 
-const buildEsriQuery = (conditions) => {
+function buildEsriQuery(conditions) {
   let query = "";
 
   conditions.forEach((condition, index) => {
@@ -65,32 +68,6 @@ const buildEsriQuery = (conditions) => {
   });
 
   return query;
-};
-
-function isValidQuery(queryString: string) {
-  // Step 1: Split the query string into parts
-  const queryParts = queryString
-    .split(" ")
-    .filter((part) => !part.includes("AND"));
-  console.log(queryParts);
-
-  // Step 2: Process in chunks of three
-  for (let i = 0; i < queryParts.length; i += 3) {
-    const field = queryParts[i];
-    const operator = queryParts[i + 1];
-    const value = queryParts[i + 2]; // Can be null or undefined, so we don't check this strictly
-    console.log(field, operator, value);
-
-    // Step 3: Validate the field and operator (these cannot be null or undefined)
-    if (!field || !operator || field === "null" || operator === "null") {
-      return false; // Invalid query if field or operator is missing
-    }
-
-    // Optional: You can add additional validations here if needed for specific cases
-  }
-
-  // All chunks are valid
-  return true;
 }
 
 export default function ConditionController(props: ConditionControllerProps) {
@@ -111,21 +88,27 @@ export default function ConditionController(props: ConditionControllerProps) {
   );
 
   const esriQuery = buildEsriQuery(conditions);
-
-  if (isValidQuery(esriQuery)) {
-    (props.selectedDataSource as QueriableDataSource)
-      .load(
-        {
-          where: esriQuery,
-        } as SqlQueryParams,
-        {
-          widgetId: props.widgetId,
-        }
-      )
-      .catch((error) => {
-        console.error("Error Querying Data. ", error);
-      });
-  }
+  console.log(esriQuery);
+  sql
+    .parseWhereClause(
+      esriQuery,
+      (props.selectedDataSource as FeatureLayerDataSource).layer.fieldsIndex
+    )
+    .then((result) => {
+      if (result.isStandardized) {
+        (props.selectedDataSource as QueriableDataSource).load(
+          {
+            where: esriQuery,
+          } as SqlQueryParams,
+          {
+            widgetId: props.widgetId,
+          }
+        );
+      }
+    })
+    .catch((error) => {
+      console.log("Invalid query", error);
+    });
 
   function addCondition(newCondition: QueryCondition) {
     setConditions((prevConditions) => {
@@ -152,8 +135,6 @@ export default function ConditionController(props: ConditionControllerProps) {
   }
 
   const updateCondition = (index: number, updatedCondition: QueryCondition) => {
-    console.log("Updating", index, updatedCondition);
-
     setConditions((prevState) => {
       const updatedConditions = prevState.map((condition, idx) =>
         idx === index ? { ...condition, ...updatedCondition } : condition
