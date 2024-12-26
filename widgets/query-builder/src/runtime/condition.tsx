@@ -43,6 +43,7 @@ export default function Condition(props: ConditionProps) {
         selectedField={props.condition.field}
         updateField={updateField}
         updateType={updateType}
+        updateValue={updateValue}
       />
       {props.condition.field && (
         <OperatorSelector
@@ -52,7 +53,12 @@ export default function Condition(props: ConditionProps) {
         />
       )}
       {props.condition.operator && (
-        <ValueSelector type={props.condition.type} updateValue={updateValue} />
+        <ValueSelector
+          value={props.condition.value}
+          type={props.condition.type}
+          updateValue={updateValue}
+          renderTwoInputs={props.condition.operator === "BETWEEN"}
+        />
       )}
     </>
   );

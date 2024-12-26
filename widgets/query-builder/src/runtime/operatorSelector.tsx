@@ -31,6 +31,9 @@ export default function OperatorSelector({
   updateOperator: (operator: string) => void;
 }) {
   const availableTypes = type === "STRING" ? stringOperators : numericOperators;
+  if (!availableTypes.includes(selectedOperator)) {
+    updateOperator(availableTypes[0]);
+  }
 
   function handleOperatorSelected(e: MouseEvent) {
     const operatorSelected = (e.target as HTMLInputElement).value;

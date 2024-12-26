@@ -7,16 +7,19 @@ export default function FieldSelector({
   availableFields,
   updateField,
   updateType,
+  updateValue,
 }: {
   selectedField: string;
   availableFields: JimuField[];
   updateField: (field: string) => void;
   updateType: (type: string) => void;
+  updateValue: (value: string | number | Date) => void;
 }) {
   function handleFieldSelected(e: MouseEvent) {
     const fieldSelected = (e.target as HTMLInputElement).value;
     updateField((e.target as HTMLInputElement).value);
     updateType(availableFields.find((f) => f.name === fieldSelected).type);
+    updateValue("");
   }
 
   return (

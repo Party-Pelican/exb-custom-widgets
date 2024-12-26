@@ -75,7 +75,7 @@ export default function ConditionController(props: ConditionControllerProps) {
     {
       field: null,
       operator: null,
-      value: null,
+      value: "",
       type: null,
       logicOperator: null,
     },
@@ -88,7 +88,7 @@ export default function ConditionController(props: ConditionControllerProps) {
   );
 
   const esriQuery = buildEsriQuery(conditions);
-  console.log(esriQuery);
+
   sql
     .parseWhereClause(
       esriQuery,
@@ -96,18 +96,24 @@ export default function ConditionController(props: ConditionControllerProps) {
     )
     .then((result) => {
       if (result.isStandardized) {
-        (props.selectedDataSource as QueriableDataSource).load(
+        (props.selectedDataSource as QueriableDataSource).updateQueryParams(
           {
             where: esriQuery,
           } as SqlQueryParams,
-          {
-            widgetId: props.widgetId,
-          }
+          props.widgetId
         );
+        // (props.selectedDataSource as QueriableDataSource).load(
+        //   {
+        //     where: esriQuery,
+        //   } as SqlQueryParams,
+        //   {
+        //     widgetId: props.widgetId,
+        //   }
+        // );
       }
     })
     .catch((error) => {
-      console.log("Invalid query", error);
+      console.log("Invalid query:", error.message);
     });
 
   function addCondition(newCondition: QueryCondition) {
