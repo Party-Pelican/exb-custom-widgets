@@ -35,16 +35,20 @@ function checkPopupEnabled(layer: __esri.Layer): boolean {
 }
 
 async function selectByGraphic(
-  event: __esri.ViewClickEvent,
+  event: __esri.ViewClickEvent | Graphic,
   setSelectedFeatures: (selectedFeatures: Graphic[]) => void,
   jimuMapView: JimuMapView,
   popupTemplates: Map<string, __esri.PopupTemplate>
 ) {
   setSelectedFeatures([]);
   jimuMapView.clearSelectedFeatures();
-  const graphic = new Graphic({
-    geometry: event.mapPoint,
-  });
+  let graphic = new Graphic();
+
+  if (event instanceof Graphic) {
+    graphic = event;
+  } else {
+    graphic.geometry = event.mapPoint;
+  }
 
   const selectedFeatures = await jimuMapView.selectFeaturesByGraphic(
     graphic,
@@ -125,6 +129,11 @@ function changeSelectionMode(
 ) {
   viewHandles.remove("clickHandler");
   sketchVM.create(sketchType, { mode: "click" });
+  sketchVM.on("create", (event) => {
+    if (event.state === "complete") {
+      sketchVM.create(sketchType, { mode: "click" });
+    }
+  });
 }
 
 export { selectByGraphic, bufferFromFeature, changeSelectionMode };

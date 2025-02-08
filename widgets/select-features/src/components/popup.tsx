@@ -80,6 +80,8 @@ export default function PopupComponent({
             popup.current.selectedFeature,
             flashGraphicsLayer.current
           );
+        } else if (event.action.id === "zoom-to-feature") {
+          view.goTo(popup.current.selectedFeature);
         }
       }
     );
@@ -89,5 +91,5 @@ export default function PopupComponent({
     };
   });
 
-  return <div ref={domElement}></div>;
+  return <div ref={domElement} className="flex-grow-1 overflow-auto"></div>;
 }
