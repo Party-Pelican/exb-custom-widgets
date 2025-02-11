@@ -1,4 +1,4 @@
-import { SlotsVisibilityConfig } from "../../src/panel-config.types";
+import { SlotsVisibilityConfig } from "../../src/shell-config.types";
 
 export interface SlotVisibilityProps {
   slotVisibilityConfig: SlotsVisibilityConfig;

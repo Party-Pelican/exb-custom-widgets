@@ -1,6 +1,6 @@
 {
-  "name": "panel",
-  "label": "Panel",
+  "name": "shell",
+  "label": "Shell",
   "type": "widget",
   "widgetType": "LAYOUT",
   "version": "1.15.0",

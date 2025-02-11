@@ -14,6 +14,7 @@ export interface SlotsVisibilityConfig {
   "panel-bottom"?: false;
 }
 
-export type PanelConfig = {
+export type ShellConfig = {
+  contentBehind: boolean;
   slotsVisibility: SlotsVisibilityConfig;
 };

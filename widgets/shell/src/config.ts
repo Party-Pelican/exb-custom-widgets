@@ -1,8 +1,8 @@
 import { type ImmutableObject } from "seamless-immutable";
-import { type PanelConfig } from "./panel-config.types";
+import { type ShellConfig } from "./shell-config.types";
 
 export interface Config {
-  panel: PanelConfig;
+  shell: ShellConfig;
 }
 
 export type IMConfig = ImmutableObject<Config>;
