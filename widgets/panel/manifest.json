@@ -1,0 +1,79 @@
+{
+  "name": "panel",
+  "label": "Panel",
+  "type": "widget",
+  "widgetType": "LAYOUT",
+  "version": "1.15.0",
+  "exbVersion": "1.15.0",
+  "author": "Esri R&D Center Beijing",
+  "description": "This is a calcite panel layout that accepts other widgets in the layout.",
+  "copyright": "",
+  "license": "http://www.apache.org/licenses/LICENSE-2.0",
+  "properties": {
+    "hasEmbeddedLayout": true,
+    "isWidgetController": true
+  },
+  "layouts": [
+    {
+      "name": "default",
+      "label": "Default",
+      "type": "FIXED"
+    },
+    {
+      "name": "panel-start",
+      "label": "Panel Start",
+      "type": "FIXED"
+    },
+    {
+      "name": "panel-end",
+      "label": "Panel End",
+      "type": "FIXED"
+    },
+    {
+      "name": "panel-top",
+      "label": "Panel Top",
+      "type": "FIXED"
+    },
+    {
+      "name": "panel-bottom",
+      "label": "Panel Bottom",
+      "type": "FIXED"
+    },
+    {
+      "name": "alerts",
+      "label": "Alerts",
+      "type": "FIXED"
+    },
+    {
+      "name": "dialogs",
+      "label": "Dialogs",
+      "type": "FIXED"
+    },
+    {
+      "name": "header",
+      "label": "Header",
+      "type": "FIXED"
+    },
+    {
+      "name": "footer",
+      "label": "Footer",
+      "type": "FIXED"
+    },
+    {
+      "name": "modals",
+      "label": "Modals",
+      "type": "FIXED"
+    },
+    {
+      "name": "sheets",
+      "label": "Sheets",
+      "type": "FIXED"
+    }
+  ],
+  "dependency": ["jimu-arcgis"],
+  "translatedLocales": ["en"],
+  "defaultSize": {
+    "width": 400,
+    "height": 600
+  }
+}
