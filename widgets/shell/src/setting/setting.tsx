@@ -27,10 +27,8 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
         }
       />
       <SlotVisibilitySetting
-        slotVisibilityConfig={config.shell?.slotsVisibility || {}}
-        onUpdate={(updatedSlots) =>
-          updateConfig({ slotsVisibility: updatedSlots })
-        }
+        shellConfig={props.config?.shell}
+        onUpdate={updateConfig}
       />
     </>
   );

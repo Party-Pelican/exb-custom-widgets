@@ -13,6 +13,78 @@
       "panel-top": false,
       "panel-end": false,
       "panel-bottom": false
+    },
+    "default": {
+      "collapsed": false,
+      "displayMode": "dock",
+      "height": "m",
+      "width": "m",
+      "layout": "vertical",
+      "position": "start",
+      "resizable": false
+    },
+    "panel-start": {
+      "collapsed": false,
+      "displayMode": "dock",
+      "height": "m",
+      "width": "m",
+      "layout": "vertical",
+      "position": "start",
+      "resizable": false
+    },
+    "panel-end": {
+      "collapsed": false,
+      "displayMode": "dock",
+      "height": "m",
+      "width": "m",
+      "layout": "vertical",
+      "position": "start",
+      "resizable": false
+    },
+    "panel-top": {
+      "collapsed": false,
+      "displayMode": "dock",
+      "height": "m",
+      "width": "m",
+      "layout": "vertical",
+      "position": "start",
+      "resizable": false
+    },
+    "panel-bottom": {
+      "collapsed": false,
+      "displayMode": "dock",
+      "height": "m",
+      "width": "m",
+      "layout": "vertical",
+      "position": "start",
+      "resizable": false
+    },
+    "alerts": {
+      "collapsed": false,
+      "displayMode": "dock",
+      "height": "m",
+      "width": "m",
+      "layout": "vertical",
+      "position": "start",
+      "resizable": false
+    },
+    "sheets": {
+      "collapsed": false,
+      "displayMode": "dock",
+      "height": "m",
+      "width": "m",
+      "layout": "vertical",
+      "position": "start",
+      "resizable": false
+    },
+    "modals": {
+      "collapsed": false,
+      "displayMode": "dock",
+      "height": "m",
+      "width": "m",
+      "layout": "vertical",
+      "position": "start",
+      "resizable": false
     }
   }
 }

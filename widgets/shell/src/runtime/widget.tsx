@@ -6,18 +6,19 @@ import {
   CalciteSheet,
   CalciteModal,
   CalciteAlert,
+  CalcitePanel,
+  CalciteActionBar,
 } from "calcite-components";
-import { LayoutItemInBuilder } from "jimu-layouts/layout-builder";
 import { LayoutEntry } from "jimu-layouts/layout-runtime";
-import SlotPlaceholder from "../../components/slot-placeholder/slot-placeholder";
-import { useState } from "react";
+import { WidgetPlaceholder } from "jimu-ui";
 
 const SlotComponents = {
+  default: CalcitePanel,
   alerts: CalciteAlert,
   modals: CalciteModal,
-  "panel-left": CalciteShellPanel,
+  "panel-start": CalciteShellPanel,
   "panel-top": CalciteShellPanel,
-  "panel-right": CalciteShellPanel,
+  "panel-end": CalciteShellPanel,
   "panel-bottom": CalciteShellPanel,
   sheets: CalciteSheet,
 };
@@ -41,16 +42,61 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
     );
   }
 
+  console.log(props.layouts);
+
   return (
-    <CalciteShell>
-      {Object.entries(props.config?.shell?.slotsVisibility).map(
-        ([slot, isVisible]) => {
-          const SlotComponent = SlotComponents[slot];
-          return isVisible && SlotComponent ? (
-            <SlotComponent key={slot} position={"start"}></SlotComponent>
-          ) : null;
-        }
-      )}
+    <CalciteShell style={{ backgroundColor: "transparent" }}>
+      {props.layouts &&
+        Object.entries(props.config?.shell?.slotsVisibility).map(
+          ([slot, isVisible]) => {
+            const SlotComponent = SlotComponents[slot];
+            if (isVisible && SlotComponent && slot !== "default") {
+              return (
+                <SlotComponent
+                  key={slot}
+                  slot={slot}
+                  style={{ border: "1px solid black" }}
+                  {...props.config.shell[slot]}
+                >
+                  <LayoutComponent
+                    isInWidget
+                    layout={props.layouts[slot]}
+                    style={{
+                      overflow: "auto",
+                      minHeight: "none",
+                    }}
+                  />
+                </SlotComponent>
+              );
+            } else if (isVisible && SlotComponent && slot == "default") {
+              console.log(props.layouts[slot]);
+              return (
+                <SlotComponent
+                  key={slot}
+                  heading={slot}
+                  className="widget-fixed-layout"
+                  {...props.config.shell[slot]}
+                >
+                  <LayoutComponent
+                    layout={props.layouts[slot]}
+                    style={{
+                      overflow: "auto",
+                      minHeight: "none",
+                    }}
+                  >
+                    <WidgetPlaceholder
+                      widgetId={props.id}
+                      icon={""}
+                      style={{
+                        border: "none",
+                      }}
+                    />
+                  </LayoutComponent>
+                </SlotComponent>
+              );
+            }
+          }
+        )}
     </CalciteShell>
   );
 }

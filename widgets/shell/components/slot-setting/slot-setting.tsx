@@ -17,20 +17,21 @@ import {
 import { useRef, useState } from "react";
 import icon from "../../src/runtime/assets/icons/gear-24.svg";
 import { SlotSettingProps } from "./slot-setting.types";
+import { DisplayMode, displayModes } from "../../src/shell-config.types";
 
-const displayModes = ["dock", "overlay", "float-all", "float-content"] as const;
-
-type DisplayMode = (typeof displayModes)[number];
-
-export default function SlotSetting({ slot }: SlotSettingProps) {
+export default function SlotSetting({
+  shellPanelConfig,
+  slot,
+  onUpdate,
+}: SlotSettingProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("dock");
-  const buttonRef = useRef(null);
+  const settingsButton = useRef(null);
+
   return (
     <>
       <Button
         icon
-        ref={buttonRef}
+        ref={settingsButton}
         onClick={() => setIsOpen((prevState) => !prevState)}
       >
         <Icon icon={icon}></Icon>
@@ -39,15 +40,26 @@ export default function SlotSetting({ slot }: SlotSettingProps) {
         isOpen={isOpen}
         position="right"
         title={`${slot.replace(/\b\w/g, (char) => char.toUpperCase())} Setting`}
-        trigger={null}
-        toggle={() => setIsOpen((prevState) => !prevState)}
+        trigger={settingsButton.current}
+        toggle={() => {
+          setIsOpen((prevState) => !prevState);
+        }}
       >
         <SettingSection title="Properties">
           <Label className="d-flex">
             <Tooltip
               title={"When `checked`, hides the component's content area."}
             >
-              <Checkbox className="mr-2" />
+              <Checkbox
+                className="mr-2"
+                checked={shellPanelConfig?.collapsed}
+                onClick={() =>
+                  onUpdate(slot, {
+                    ...shellPanelConfig,
+                    collapsed: !shellPanelConfig?.collapsed,
+                  })
+                }
+              />
             </Tooltip>
             Collapsed
           </Label>
@@ -57,19 +69,33 @@ export default function SlotSetting({ slot }: SlotSettingProps) {
                 "When `true` and `displayMode` is not `float-content` or `float`, the component's content area is resizable."
               }
             >
-              <Checkbox className="mr-2" />
+              <Checkbox
+                className="mr-2"
+                checked={shellPanelConfig?.resizable}
+                onClick={() =>
+                  onUpdate(slot, {
+                    ...shellPanelConfig,
+                    resizable: !shellPanelConfig?.resizable,
+                  })
+                }
+              />
             </Tooltip>
             Resizable
           </Label>
           <Dropdown>
-            <DropdownButton>{displayMode}</DropdownButton>
+            <DropdownButton>{shellPanelConfig?.displayMode}</DropdownButton>
             <DropdownMenu>
               {displayModes.map((m) => (
                 <DropdownItem
                   key={m}
                   value={m}
-                  active={displayMode == m}
-                  onClick={(e) => setDisplayMode(e.target.value)}
+                  active={shellPanelConfig?.displayMode == m}
+                  onClick={(e) =>
+                    onUpdate(slot, {
+                      ...shellPanelConfig,
+                      displayMode: e.target.value,
+                    })
+                  }
                 >
                   {m}
                 </DropdownItem>

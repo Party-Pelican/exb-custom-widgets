@@ -1,6 +1,6 @@
-import { SlotsVisibilityConfig } from "../../src/shell-config.types";
+import { ShellConfig } from "../../src/shell-config.types";
 
 export interface SlotVisibilityProps {
-  slotVisibilityConfig: SlotsVisibilityConfig;
-  onUpdate: (updatedVisibility: SlotsVisibilityConfig) => void;
+  shellConfig: ShellConfig;
+  onUpdate: (newConfig: Partial<ShellConfig>) => void;
 }
