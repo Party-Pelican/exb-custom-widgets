@@ -1,0 +1,13 @@
+{
+  "useMapViewIds": [],
+  "saveColor": "#076fe5",
+  "resetColor": "#c22d29",
+  "textColor": "#ffffff",
+  "layerListProps": {
+    "dragEnabled": true,
+    "visibleElements": {
+      "errors": true,
+      "filter": true
+    }
+  }
+}
