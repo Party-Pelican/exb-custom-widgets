@@ -1,5 +1,5 @@
-import { AllWidgetProps, React, jsx } from "jimu-core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { AllWidgetProps, React } from "jimu-core";
+import { useEffect, useRef, useState } from "react";
 import LayerList from "@arcgis/core/widgets/LayerList.js";
 import { IMConfig } from "../config";
 import { JimuMapView, JimuMapViewComponent } from "jimu-arcgis";

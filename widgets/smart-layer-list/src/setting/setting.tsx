@@ -38,7 +38,7 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
   }
 
   function onLayerListSettingChange(setting) {
-    let newSettings = { ...props.config.getIn(["layerListProps"]) };
+    let newSettings = { ...props.config.layerListProps };
     if (Object.keys(setting)[0] in props.config.layerListProps) {
       newSettings = { ...newSettings, ...setting };
     } else {

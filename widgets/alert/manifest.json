@@ -1,11 +1,11 @@
 {
-  "name": "smart-layer-list",
-  "label": "Smart Layer List",
+  "name": "alert",
+  "label": "Alert",
   "type": "widget",
   "version": "1.13.0",
   "exbVersion": "1.13.0",
   "author": "Esri R&D Center Beijing",
-  "description": "A layer list widget that can save the layer list visibility.",
+  "description": "A component to alert users.",
   "copyright": "",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
   "properties": {},
@@ -13,6 +13,6 @@
   "translatedLocales": ["en"],
   "defaultSize": {
     "width": 200,
-    "height": 400
+    "height": 200
   }
 }
