@@ -1,1 +1,14 @@
-{}
+{
+  "alertConfig": {
+    "label": "Accessibility Label",
+    "title": "Alert Title",
+    "message": "Alert!",
+    "autoClose": true,
+    "open": false,
+    "autoCloseDuration": "medium",
+    "kind": "brand",
+    "placement": "bottom",
+    "scale": "m",
+    "icon": "add-reaction"
+  }
+}

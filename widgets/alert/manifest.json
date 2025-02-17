@@ -8,11 +8,22 @@
   "description": "A component to alert users.",
   "copyright": "",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
-  "properties": {},
+  "properties": {
+    "hasConfig": true,
+    "hasConfigInSettingPage": false
+  },
   "dependency": ["jimu-arcgis"],
   "translatedLocales": ["en"],
   "defaultSize": {
     "width": 200,
     "height": 200
-  }
+  },
+  "messageActions": [
+    {
+      "name": "alert",
+      "label": "Alert",
+      "uri": "actions/alert-action",
+      "settingUri": "actions/alert-action-setting"
+    }
+  ]
 }
