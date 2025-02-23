@@ -9,7 +9,9 @@
   "description": "This is a calcite panel layout that accepts other widgets in the layout.",
   "copyright": "",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
-  "properties": {},
+  "properties": {
+    "hasEmbeddedLayout": true
+  },
   "layouts": [
     {
       "name": "default",

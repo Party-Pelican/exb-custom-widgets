@@ -24,9 +24,12 @@ const SlotComponents = {
 };
 
 export default function Widget(props: AllWidgetProps<IMConfig>) {
-  const LayoutComponent = !window.jimuConfig.isInBuilder
-    ? LayoutEntry
-    : props.builderSupportModules.widgetModules.LayoutBuilder;
+  let LayoutComponent: typeof LayoutEntry;
+  if (window.jimuConfig.isInBuilder) {
+    LayoutComponent = props.builderSupportModules.LayoutEntry;
+  } else {
+    LayoutComponent = LayoutEntry;
+  }
 
   if (LayoutComponent == null) {
     return (
@@ -45,7 +48,7 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
   console.log(props.layouts);
 
   return (
-    <CalciteShell style={{ backgroundColor: "transparent" }}>
+    <CalciteShell id="shell-widget" style={{ backgroundColor: "transparent" }}>
       {props.layouts &&
         Object.entries(props.config?.shell?.slotsVisibility).map(
           ([slot, isVisible]) => {
@@ -55,43 +58,28 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
                 <SlotComponent
                   key={slot}
                   slot={slot}
-                  style={{ border: "1px solid black" }}
                   {...props.config.shell[slot]}
                 >
                   <LayoutComponent
                     isInWidget
-                    layout={props.layouts[slot]}
-                    style={{
-                      overflow: "auto",
-                      minHeight: "none",
-                    }}
+                    layouts={props.layouts[slot]}
+                    className="h-100 w-100"
                   />
                 </SlotComponent>
               );
             } else if (isVisible && SlotComponent && slot == "default") {
-              console.log(props.layouts[slot]);
               return (
                 <SlotComponent
                   key={slot}
+                  id={slot}
                   heading={slot}
-                  className="widget-fixed-layout"
                   {...props.config.shell[slot]}
                 >
                   <LayoutComponent
-                    layout={props.layouts[slot]}
-                    style={{
-                      overflow: "auto",
-                      minHeight: "none",
-                    }}
-                  >
-                    <WidgetPlaceholder
-                      widgetId={props.id}
-                      icon={""}
-                      style={{
-                        border: "none",
-                      }}
-                    />
-                  </LayoutComponent>
+                    isInWidget
+                    layouts={props.layouts[slot]}
+                    className="h-100 w-100"
+                  ></LayoutComponent>
                 </SlotComponent>
               );
             }
@@ -99,4 +87,16 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
         )}
     </CalciteShell>
   );
+}
+
+{
+  /* <SlotComponent
+  key={slot}
+  id={slot}
+  heading={slot}
+  className="flex-grow-1 d-flex w-100 h-100"
+  {...props.config.shell[slot]}
+>
+  <LayoutComponent isInWidget layouts={props.layouts[slot]}></LayoutComponent>
+</SlotComponent>; */
 }
