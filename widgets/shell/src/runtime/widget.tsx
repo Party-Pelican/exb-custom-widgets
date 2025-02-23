@@ -88,15 +88,3 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
     </CalciteShell>
   );
 }
-
-{
-  /* <SlotComponent
-  key={slot}
-  id={slot}
-  heading={slot}
-  className="flex-grow-1 d-flex w-100 h-100"
-  {...props.config.shell[slot]}
->
-  <LayoutComponent isInWidget layouts={props.layouts[slot]}></LayoutComponent>
-</SlotComponent>; */
-}
