@@ -2,14 +2,10 @@ import { React } from "jimu-core";
 import { ContentBehindProps } from "./content-behind-setting.types";
 import { SettingSection } from "jimu-ui/advanced/setting-components";
 import { Label, Checkbox, Tooltip } from "jimu-ui";
+import { useWidgetContext } from "../../context/widget-context";
 
-export default function ContentBehindSetting({
-  contentBehindConfig,
-  onUpdate,
-}: ContentBehindProps) {
-  function handleCheckboxChange() {
-    onUpdate(!contentBehindConfig);
-  }
+export default function ContentBehindSetting() {
+  const { state, dispatch } = useWidgetContext();
 
   return (
     <SettingSection title="Content Behind">
@@ -21,8 +17,13 @@ export default function ContentBehindSetting({
         >
           <Checkbox
             className="mr-2"
-            onChange={handleCheckboxChange}
-            checked={contentBehindConfig}
+            onChange={() =>
+              dispatch({
+                type: "UPDATE_SHELL",
+                payload: { contentBehind: !state.contentBehind },
+              })
+            }
+            checked={state.contentBehind}
           />
         </Tooltip>
         Content Behind

@@ -1,11 +1,6 @@
 import React from "react";
 
-export const displayModes = [
-  "dock",
-  "overlay",
-  "float-all",
-  "float-content",
-] as const;
+export const displayModes = ["dock", "overlay", "float"] as const;
 
 export type DisplayMode = (typeof displayModes)[number];
 
@@ -21,12 +16,6 @@ export interface ShellPanelConfig {
 
 export interface SlotsVisibilityConfig {
   default?: boolean;
-  alerts?: boolean;
-  dialogs?: boolean;
-  header?: boolean;
-  footer?: boolean;
-  modals?: boolean;
-  sheets?: boolean;
   "panel-start"?: boolean;
   "panel-top"?: boolean;
   "panel-end"?: boolean;

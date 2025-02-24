@@ -4,47 +4,33 @@ import {
   SettingSection,
 } from "jimu-ui/advanced/setting-components";
 import { Checkbox, Label } from "jimu-ui";
-import { SlotVisibilityProps } from "./slot-visibility-setting.types";
-import {
-  ShellPanelConfig,
-  SlotsVisibilityConfig,
-} from "../../src/shell-config.types";
+import { SlotsVisibilityConfig } from "../../src/shell-config.types";
 import SlotSetting from "../slot-setting/slot-setting";
+import { useWidgetContext } from "../../context/widget-context";
 
-export default function SlotVisibilitySetting({
-  shellConfig,
-  onUpdate,
-}: SlotVisibilityProps) {
-  const slotKeys = Object.keys(shellConfig.slotsVisibility) as Array<
+export default function SlotVisibilitySetting() {
+  const { state, dispatch } = useWidgetContext();
+  const slotKeys = Object.keys(state.slotsVisibility) as Array<
     keyof SlotsVisibilityConfig
   >;
 
   function toggleVisibility(key: keyof SlotsVisibilityConfig) {
-    onUpdate({
-      slotsVisibility: {
-        ...shellConfig.slotsVisibility,
-        [key]: !shellConfig.slotsVisibility[key],
-      },
+    dispatch({
+      type: "UPDATE_SLOTS_VISIBILITY",
+      payload: { ...state.slotsVisibility, [key]: !state.slotsVisibility[key] },
     });
   }
 
   function toggleAll() {
-    const allChecked = Object.values(shellConfig.slotsVisibility).every(
-      (v) => v
-    );
+    const allChecked = Object.values(state.slotsVisibility).every((v) => v);
     const updatedVisibility = slotKeys.reduce(
       (acc, key) => ({ ...acc, [key]: !allChecked }),
       {}
     );
-    onUpdate({ slotsVisibility: updatedVisibility });
-  }
 
-  function updateShellPanelConfig(
-    slot: keyof SlotsVisibilityConfig,
-    shellPanelConfig: Partial<ShellPanelConfig>
-  ) {
-    onUpdate({
-      [slot]: shellPanelConfig,
+    dispatch({
+      type: "UPDATE_SLOTS_VISIBILITY",
+      payload: updatedVisibility,
     });
   }
 
@@ -55,7 +41,7 @@ export default function SlotVisibilitySetting({
           <Checkbox
             className="mr-2"
             onChange={toggleAll}
-            checked={Object.values(shellConfig.slotsVisibility).every((v) => v)}
+            checked={Object.values(state.slotsVisibility).every((v) => v)}
           />
           All Slots
         </Label>
@@ -67,16 +53,12 @@ export default function SlotVisibilitySetting({
               <Checkbox
                 className="mr-2"
                 onChange={() => toggleVisibility(key)}
-                checked={shellConfig.slotsVisibility[key]}
+                checked={state.slotsVisibility[key]}
               />
               {formatSlotName(key)}
             </Label>
-            {shellConfig.slotsVisibility[key] && (
-              <SlotSetting
-                shellPanelConfig={shellConfig[key]}
-                onUpdate={updateShellPanelConfig}
-                slot={key}
-              />
+            {state.slotsVisibility[key] && (
+              <SlotSetting slot={key} type="calcite-shell-panel" />
             )}
           </SettingRow>
         );

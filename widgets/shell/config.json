@@ -3,12 +3,6 @@
     "contentBehind": false,
     "slotsVisibility": {
       "default": true,
-      "alerts": false,
-      "dialogs": false,
-      "header": false,
-      "footer": false,
-      "modals": false,
-      "sheets": false,
       "panel-start": false,
       "panel-top": false,
       "panel-end": false,
@@ -51,33 +45,6 @@
       "resizable": false
     },
     "panel-bottom": {
-      "collapsed": false,
-      "displayMode": "dock",
-      "height": "m",
-      "width": "m",
-      "layout": "vertical",
-      "position": "start",
-      "resizable": false
-    },
-    "alerts": {
-      "collapsed": false,
-      "displayMode": "dock",
-      "height": "m",
-      "width": "m",
-      "layout": "vertical",
-      "position": "start",
-      "resizable": false
-    },
-    "sheets": {
-      "collapsed": false,
-      "displayMode": "dock",
-      "height": "m",
-      "width": "m",
-      "layout": "vertical",
-      "position": "start",
-      "resizable": false
-    },
-    "modals": {
       "collapsed": false,
       "displayMode": "dock",
       "height": "m",

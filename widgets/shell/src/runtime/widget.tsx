@@ -3,24 +3,16 @@ import { type IMConfig } from "../config";
 import {
   CalciteShell,
   CalciteShellPanel,
-  CalciteSheet,
-  CalciteModal,
-  CalciteAlert,
   CalcitePanel,
-  CalciteActionBar,
 } from "calcite-components";
 import { LayoutEntry } from "jimu-layouts/layout-runtime";
-import { WidgetPlaceholder } from "jimu-ui";
 
 const SlotComponents = {
   default: CalcitePanel,
-  alerts: CalciteAlert,
-  modals: CalciteModal,
   "panel-start": CalciteShellPanel,
   "panel-top": CalciteShellPanel,
   "panel-end": CalciteShellPanel,
   "panel-bottom": CalciteShellPanel,
-  sheets: CalciteSheet,
 };
 
 export default function Widget(props: AllWidgetProps<IMConfig>) {
@@ -45,10 +37,14 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
     );
   }
 
-  console.log(props.layouts);
+  console.log(props.config.shell);
 
   return (
-    <CalciteShell id="shell-widget" style={{ backgroundColor: "transparent" }}>
+    <CalciteShell
+      id="shell-widget"
+      style={{ backgroundColor: "transparent" }}
+      contentBehind={props.config.shell.contentBehind}
+    >
       {props.layouts &&
         Object.entries(props.config?.shell?.slotsVisibility).map(
           ([slot, isVisible]) => {
