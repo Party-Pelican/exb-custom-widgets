@@ -1,0 +1,14 @@
+{
+  "panel": {
+    "closable": true,
+    "closed": false,
+    "collapsed": false,
+    "collapsible": true,
+    "disabled": false,
+    "heading": "Heading",
+    "headingLevel": 1,
+    "menuPlacement": "auto",
+    "overlayPositioning": "absolute",
+    "scale": "m"
+  }
+}

@@ -1,18 +1,16 @@
 {
-  "name": "query-builder",
-  "label": "Query Builder",
+  "name": "action",
+  "label": "Action",
   "type": "widget",
   "version": "1.15.0",
   "exbVersion": "1.15.0",
   "author": "Esri R&D Center Beijing",
-  "description": "This widget allows a user to execute an attribute query or a location query.",
+  "description": "This is a calcite action that is used to toggle shell panels.",
   "copyright": "",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
-  "properties": {},
   "translatedLocales": ["en"],
-  "dependency": "jimu-arcgis",
   "defaultSize": {
-    "width": 100,
-    "height": 100
+    "width": 50,
+    "height": 50
   }
 }

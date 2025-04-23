@@ -1,88 +1,107 @@
-import { DataSourceManager, React, type AllWidgetProps } from "jimu-core";
+import {
+  DataSourceTypes,
+  FeatureLayerDataSource,
+  React,
+  type AllWidgetProps,
+} from "jimu-core";
 import { type IMConfig } from "../config";
-import { JimuLayerView, JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
-import { MouseEvent, useState } from "react";
-import { Dropdown, DropdownButton, DropdownItem, DropdownMenu } from "jimu-ui";
-import ConditionController from "./conditionController";
-import { type IMUseDataSource } from "jimu-core";
+import { JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
+import { useState } from "react";
+import { Button, FloatingPanel } from "jimu-ui";
+import AttributeForm from "../components/attributeForm/attributeForm";
+import LocationForm from "../components/locationForm/locationForm";
 
 const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [activeView, setActiveView] = useState<JimuMapView>(null);
-  const [jimuLayerViews, setJimuLayerViews] = useState<JimuLayerView[]>([]);
-  const [selectedDataSource, setSelectedDataSource] = useState({
-    dataSource: null,
-    schema: null,
-  });
+  const [selectionType, setSelectionType] = useState<
+    "attributes" | "location" | null
+  >(null);
+  const [featureLayerDataSources, setFeatureLayerDataSources] =
+    useState<FeatureLayerDataSource[]>(null);
+  const [dialogVisible, setDialogVisible] = useState(false);
 
   function onActiveViewChange(activeView: JimuMapView) {
+    setActiveView(activeView ?? null);
+
     if (activeView) {
-      setActiveView(activeView);
-      activeView.whenAllJimuLayerViewLoaded().then((jimuLayerViews) => {
-        setJimuLayerViews(Object.values(jimuLayerViews));
+      activeView.whenJimuMapViewLoaded().then((jimuMapView) => {
+        const mapDataSource = jimuMapView.getMapDataSource();
+        console.log("Map Data Source", mapDataSource);
+
+        mapDataSource.childDataSourcesReady().then((childDataSources) => {
+          const flds = mapDataSource.getDataSourcesByType(
+            DataSourceTypes.FeatureLayer
+          ) as FeatureLayerDataSource[];
+          setFeatureLayerDataSources(flds);
+        });
       });
-    } else {
-      setActiveView(null);
-      setJimuLayerViews([]);
     }
   }
 
-  function handleDataSourceSelection(mouseEvent: MouseEvent<any, MouseEvent>) {
-    DataSourceManager.getInstance()
-      .createDataSourceByUseDataSource({
-        dataSourceId: (mouseEvent.target as HTMLInputElement).value,
-        mainDataSourceId: (mouseEvent.target as HTMLInputElement).value,
-        rootDataSourceId: activeView.dataSourceId,
-      } as IMUseDataSource)
-      .then((dataSource) => {
-        setSelectedDataSource({
-          dataSource: dataSource,
-          schema: dataSource.getSchema(),
-        });
-      });
-  }
-
   return (
-    <div className="m-2">
-      <p>QueryBuilder Widget</p>
-
-      {activeView && jimuLayerViews.length > 0 && (
-        <Dropdown activeIcon menuItemCheckMode="singleCheck" menuRole="listbox">
-          <DropdownButton>
-            {selectedDataSource.schema?.label || "Select a Datasource"}
-          </DropdownButton>
-          <DropdownMenu>
-            {jimuLayerViews.map((jimuLayerView) => {
-              return (
-                <DropdownItem
-                  active={
-                    jimuLayerView.layerDataSourceId ===
-                    selectedDataSource.dataSource?.id
-                  }
-                  value={jimuLayerView.layerDataSourceId}
-                  key={jimuLayerView.layerDataSourceId}
-                  onClick={handleDataSourceSelection}
-                >
-                  {jimuLayerView.layer.title}
-                </DropdownItem>
-              );
-            })}
-          </DropdownMenu>
-        </Dropdown>
-      )}
-      {selectedDataSource.schema && selectedDataSource.schema.fields && (
-        <ConditionController
-          fields={Object.keys(selectedDataSource.schema.fields).map(
-            (k) => selectedDataSource.schema.fields[k]
-          )}
-          key={selectedDataSource.dataSource?.id}
-          selectedDataSource={selectedDataSource.dataSource}
-          widgetId={props.widgetId}
-        />
-      )}
+    <div className="w-100 h-100 d-flex flex-column flex-md-row flex-wrap overflow-auto">
       <JimuMapViewComponent
         useMapWidgetId={props.useMapWidgetIds?.[0]}
         onActiveViewChange={onActiveViewChange}
       />
+
+      <Button
+        disabled={!featureLayerDataSources}
+        className="btn flex-fill m-1 py-1"
+        onClick={() => {
+          setSelectionType("attributes");
+          setDialogVisible(true);
+        }}
+      >
+        Select by Attributes
+      </Button>
+      <Button
+        disabled={!featureLayerDataSources}
+        className="btn flex-fill m-1 py-1"
+        onClick={() => {
+          setSelectionType("location");
+          setDialogVisible(true);
+        }}
+      >
+        Select by Location
+      </Button>
+
+      {dialogVisible && (
+        <FloatingPanel
+          autoSize
+          showHeaderCollapse
+          headerTitle={`Select by ${
+            selectionType?.charAt(0).toUpperCase() + selectionType?.slice(1)
+          }`}
+          role="dialog"
+          toggle={() => {
+            setDialogVisible(false);
+            setSelectionType(null);
+          }}
+          open={dialogVisible}
+        >
+          {selectionType === "attributes" ? (
+            <AttributeForm
+              featureLayerDataSources={featureLayerDataSources}
+              widgetId={props.widgetId}
+              toggleDialog={() => {
+                setDialogVisible(false);
+                setSelectionType(null);
+              }}
+            />
+          ) : (
+            <LocationForm
+              widgetId={props.widgetId}
+              featureLayerDataSources={featureLayerDataSources}
+              toggleDialog={() => {
+                setDialogVisible(false);
+                setSelectionType(null);
+              }}
+              jimuMapView={activeView}
+            ></LocationForm>
+          )}
+        </FloatingPanel>
+      )}
     </div>
   );
 };

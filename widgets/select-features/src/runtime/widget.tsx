@@ -15,6 +15,9 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const popupTemplates = useRef(new Map());
 
   function onActiveViewChange(jimuMapView: JimuMapView) {
+    jimuMapView.whenAllJimuLayerViewLoaded().then((results) => {
+      console.log(results);
+    });
     setJimuMapView(jimuMapView);
   }
 

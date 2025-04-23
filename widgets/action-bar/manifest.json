@@ -1,0 +1,27 @@
+{
+  "name": "action-bar",
+  "label": "Action Bar",
+  "type": "widget",
+  "version": "1.15.0",
+  "widgetType": "LAYOUT",
+  "exbVersion": "1.15.0",
+  "author": "Esri R&D Center Beijing",
+  "description": "This is a calcite panel layout that accepts other widgets in the layout.",
+  "copyright": "",
+  "license": "http://www.apache.org/licenses/LICENSE-2.0",
+  "translatedLocales": ["en"],
+  "properties": {
+    "hasEmbeddedLayout": true
+  },
+  "layouts": [
+    {
+      "name": "action bar layout",
+      "label": "Action Bar Layout",
+      "type": "FIXED"
+    }
+  ],
+  "defaultSize": {
+    "width": 50,
+    "height": 50
+  }
+}

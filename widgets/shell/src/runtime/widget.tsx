@@ -6,6 +6,8 @@ import {
   CalcitePanel,
 } from "calcite-components";
 import { LayoutEntry } from "jimu-layouts/layout-runtime";
+import { WidgetPlaceholder } from "jimu-ui";
+import plusIcon from "../runtime/assets/icons/plus-square-24.svg";
 
 const SlotComponents = {
   default: CalcitePanel,
@@ -51,21 +53,33 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
             const SlotComponent = SlotComponents[slot];
             if (isVisible && SlotComponent && slot !== "default") {
               return (
-                <SlotComponent
-                  key={slot}
-                  slot={slot}
-                  {...props.config.shell[slot]}
-                >
+                <WidgetPlaceholder icon={plusIcon} slot={slot}>
                   <LayoutComponent
                     isInWidget
                     layouts={props.layouts[slot]}
                     className="h-100 w-100"
-                  />
-                </SlotComponent>
+                  ></LayoutComponent>
+                </WidgetPlaceholder>
               );
             } else if (isVisible && SlotComponent && slot == "default") {
               return (
-                <SlotComponent
+                <WidgetPlaceholder icon={plusIcon} slot={slot}>
+                  <LayoutComponent
+                    isInWidget
+                    layouts={props.layouts[slot]}
+                    className="h-100 w-100"
+                  ></LayoutComponent>
+                </WidgetPlaceholder>
+              );
+            }
+          }
+        )}
+    </CalciteShell>
+  );
+}
+
+{
+  /* <SlotComponent
                   key={slot}
                   id={slot}
                   heading={slot}
@@ -76,11 +90,5 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
                     layouts={props.layouts[slot]}
                     className="h-100 w-100"
                   ></LayoutComponent>
-                </SlotComponent>
-              );
-            }
-          }
-        )}
-    </CalciteShell>
-  );
+                </SlotComponent> */
 }

@@ -1,6 +1,6 @@
 {
-  "name": "shell",
-  "label": "Shell",
+  "name": "panel",
+  "label": "Panel",
   "type": "widget",
   "widgetType": "LAYOUT",
   "version": "1.15.0",
@@ -19,23 +19,8 @@
       "type": "FIXED"
     },
     {
-      "name": "panel-start",
-      "label": "Panel Start",
-      "type": "FIXED"
-    },
-    {
-      "name": "panel-end",
-      "label": "Panel End",
-      "type": "FIXED"
-    },
-    {
-      "name": "panel-top",
-      "label": "Panel Top",
-      "type": "FIXED"
-    },
-    {
-      "name": "panel-bottom",
-      "label": "Panel Bottom",
+      "name": "action-bar",
+      "label": "Action Bar",
       "type": "FIXED"
     }
   ],
