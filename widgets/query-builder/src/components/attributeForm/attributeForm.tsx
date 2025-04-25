@@ -207,12 +207,12 @@ export default function AttributeForm({
   return (
     <div className="d-flex flex-column p-3">
       {/* Input Rows */}
-      <Label className="mt-3">Input Rows</Label>
 
       <Select
         value={inputLayer}
         onChange={handleInputLayerChange}
-        placeholder="Select a Layer"
+        placeholder="Input Rows"
+        className="mt-3"
       >
         {featureLayerDataSources.map((flds) => (
           <Option key={flds.id} value={flds.id}>
@@ -222,10 +222,12 @@ export default function AttributeForm({
       </Select>
 
       {/* Selection Type */}
-      <Label className="mt-3">Selection Type</Label>
+
       <Select
         value={selectionType}
         onChange={(e) => setSelectionType(e.target.value)}
+        className="mt-3"
+        placeholder="Selection Type"
       >
         <Option value="new">New selection</Option>
 

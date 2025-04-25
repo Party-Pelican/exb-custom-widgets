@@ -145,13 +145,13 @@ export default function LocationForm({
 
   return (
     <div className="d-flex flex-column p-3" style={{ minWidth: "350px" }}>
-      {/* Input Rows */}
-      <Label className="mt-3">Input Features</Label>
+      {/* Input Layer */}
 
       <Select
         value={inputLayer}
         onChange={handleInputLayerChange}
-        placeholder="Select a Layer"
+        placeholder="Input Features"
+        className="mt-3"
       >
         {featureLayerDataSources
           .filter((flds) => flds.id != selectingFeatures)
@@ -162,13 +162,13 @@ export default function LocationForm({
           ))}
       </Select>
 
-      {/* Expression Area */}
-      <Label className="mt-3">Relationship</Label>
+      {/* Relationship Area */}
 
       <Select
         value={relationship}
         onChange={handleRelationshipChange}
-        placeholder="Select a Relationship"
+        placeholder="Relationship Type"
+        className="mt-3"
       >
         {spatialRelationships.map((relationship) => {
           return (
@@ -179,12 +179,11 @@ export default function LocationForm({
         })}
       </Select>
 
-      <Label className="mt-3">Selecting Features</Label>
-
       <Select
         value={selectingFeatures}
         onChange={handleSelectingFeaturesChange}
-        placeholder="Select a Layer"
+        placeholder="Selecting Features"
+        className="mt-3"
       >
         {featureLayerDataSources
           .filter((flds) => flds.id != inputLayer)
@@ -196,10 +195,12 @@ export default function LocationForm({
       </Select>
 
       {/* Selection Type */}
-      <Label className="mt-3">Selection Type</Label>
+
       <Select
         value={selectionType}
         onChange={(e) => setSelectionType(e.target.value)}
+        placeholder="Selection Type"
+        className="mt-3"
       >
         <Option value="new">New selection</Option>
 
