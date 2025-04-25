@@ -14,6 +14,7 @@ import {
   Label,
   Icon,
   NumericInput,
+  Progress,
 } from "jimu-ui";
 
 import deleteIcon from "../../runtime/assets/x-24.svg";
@@ -95,6 +96,10 @@ export default function AttributeForm({
   const [fields, setFields] = useState<FieldSchema[]>([]);
   const [selectedDataSource, setSelectedDataSource] =
     useState<FeatureLayerDataSource>(null);
+  const [selectionProgress, setSelectionProgress] = useState<number | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
   const currentControllerRef = useRef<AbortController | null>(null);
 
@@ -173,17 +178,19 @@ export default function AttributeForm({
       if (currentControllerRef.current) {
         currentControllerRef.current.abort();
       }
+      setIsLoading(true);
 
       currentControllerRef.current = new AbortController();
 
-      selectedDataSource.selectRecords(
+      await selectedDataSource.selectRecords(
         {
           queryParams: {
             where: whereClause,
           },
           widgetId: widgetId,
         },
-        currentControllerRef.current.signal
+        currentControllerRef.current.signal,
+        (progress) => setSelectionProgress(progress)
       );
     } catch (err) {
       if (err.name === "AbortError") {
@@ -191,6 +198,9 @@ export default function AttributeForm({
       } else {
         console.error(err);
       }
+    } finally {
+      setIsLoading(false);
+      setSelectionProgress(null);
     }
   }
 
@@ -326,6 +336,15 @@ export default function AttributeForm({
 
       {/* Action buttons */}
       <div className="d-flex justify-end mt-3 ml-auto" style={{ gap: "10px" }}>
+        <Button
+          onClick={() => {
+            setIsLoading(false);
+            setSelectionProgress(null);
+            currentControllerRef.current?.abort();
+          }}
+        >
+          Cancel
+        </Button>
         <Button onClick={executeSelection}>Apply</Button>
         <Button
           type="primary"
@@ -336,6 +355,15 @@ export default function AttributeForm({
         >
           OK
         </Button>
+      </div>
+      <div className="mt-2 w-100">
+        {isLoading && (
+          <Progress
+            color="primary"
+            type="linear"
+            value={Math.round((selectionProgress ?? 0) * 100)}
+          />
+        )}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import {
 } from "jimu-core";
 import { type IMConfig } from "../config";
 import { JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button, FloatingPanel } from "jimu-ui";
 import AttributeForm from "../components/attributeForm/attributeForm";
 import LocationForm from "../components/locationForm/locationForm";
@@ -97,7 +97,6 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
                 setDialogVisible(false);
                 setSelectionType(null);
               }}
-              jimuMapView={activeView}
             ></LocationForm>
           )}
         </FloatingPanel>

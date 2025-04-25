@@ -5,17 +5,15 @@ import {
   React,
 } from "jimu-core";
 import { useRef, useState } from "react";
-import { Select, Option, Button, Label } from "jimu-ui";
+import { Select, Option, Button, Label, Progress } from "jimu-ui";
 
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 
 import { SpatialRelationship } from "@esri/arcgis-rest-feature-service";
-import { geometryUtils, JimuMapView } from "jimu-arcgis";
 
 type LocationFormProps = {
   featureLayerDataSources: FeatureLayerDataSource[];
   widgetId: string;
-  jimuMapView: JimuMapView;
   toggleDialog: () => void;
 };
 
@@ -30,83 +28,21 @@ const spatialRelationships = [
   { value: "esriSpatialRelWithin", label: "Within" },
 ];
 
-import Point from "@arcgis/core/geometry/Point";
-import Polyline from "@arcgis/core/geometry/Polyline";
-import Polygon from "@arcgis/core/geometry/Polygon";
-import Multipoint from "@arcgis/core/geometry/Multipoint";
-import {
-  IMultipoint,
-  IPoint,
-  IPolygon,
-  IPolyline,
-  Position,
-} from "@esri/arcgis-rest-request";
-import { SpatialReference } from "esri/geometry";
-
-type SupportedGeometry = Point | Polyline | Polygon | Multipoint;
-
-function convertEsriGeometry(
-  geometry: SupportedGeometry
-): IPoint | IPolyline | IPolygon | IMultipoint {
-  if (!geometry || !geometry.type) {
-    throw new Error("Invalid geometry object");
-  }
-
-  switch (geometry.type) {
-    case "point": {
-      const point = geometry as Point;
-      const result: IPoint = {
-        x: point.x,
-        y: point.y,
-        spatialReference: point.spatialReference as SpatialReference,
-      };
-      return result;
-    }
-
-    case "polyline": {
-      const polyline = geometry as Polyline;
-      const result: IPolyline = {
-        paths: polyline.paths as Position[][],
-        spatialReference: polyline.spatialReference as SpatialReference,
-      };
-      return result;
-    }
-
-    case "polygon": {
-      const polygon = geometry as Polygon;
-      const result: IPolygon = {
-        rings: polygon.rings as Position[][],
-        spatialReference: polygon.spatialReference as SpatialReference,
-      };
-      return result;
-    }
-
-    case "multipoint": {
-      const multipoint = geometry as Multipoint;
-      const result: IMultipoint = {
-        points: multipoint.points as Position[],
-        spatialReference: multipoint.spatialReference as SpatialReference,
-      };
-      return result;
-    }
-
-    default:
-      // @ts-ignore
-      throw new Error(`Unsupported geometry type: ${geometry.type}`);
-  }
-}
+import Graphic from "esri/Graphic";
 
 export default function LocationForm({
   featureLayerDataSources,
   widgetId,
-  jimuMapView,
   toggleDialog,
 }: LocationFormProps) {
   const [inputLayer, setInputLayer] = useState("");
   const [selectingFeatures, setSelectingFeatures] = useState("");
   const [selectionType, setSelectionType] = useState("new");
+  const [selectionProgress, setSelectionProgress] = useState<number | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [invertWhere, setInvertWhere] = useState(false);
   const [selectedDataSource, setSelectedDataSource] =
     useState<FeatureLayerDataSource>(null);
   const [selectingDataSource, setSelectingDataSource] =
@@ -140,6 +76,7 @@ export default function LocationForm({
       if (secondControllerRef.current) {
         secondControllerRef.current.abort();
       }
+      setIsLoading(true);
 
       mainControllerRef.current = new AbortController();
       secondControllerRef.current = new AbortController();
@@ -156,7 +93,7 @@ export default function LocationForm({
             returnGeometry: true,
           },
           secondControllerRef.current.signal,
-          (progress, result) => console.log("progress", progress),
+          (progress) => setSelectionProgress(progress),
           { widgetId: widgetId }
         )) as FeatureDataRecord[];
       }
@@ -168,38 +105,33 @@ export default function LocationForm({
       // @ts-ignore
       const unionedGeometry = unionOperator.executeMany(geometry);
 
-      // Testing to see the unioned geometry
-      // jimuMapView.view.graphics.add(
-      //   new Graphic({
-      //     geometry: unionedGeometry,
-      //     symbol: {
-      //       type: "simple-fill", // For polygon geometries
-      //       color: [0, 0, 0, 0], // Transparent fill
-      //       outline: {
-      //         color: [255, 0, 0, 1], // Red outline
-      //         width: 2,
-      //       },
-      //     },
-      //   })
-      // );
+      const selectingRecord = selectingDataSource.buildRecord(
+        new Graphic({
+          attributes: {},
+          geometry: unionedGeometry,
+        })
+      );
 
-      const selectResults = await selectedDataSource.selectRecords(
+      await selectedDataSource.selectRecords(
         {
           queryParams: {
             spatialRel: relationship,
-            geometry: convertEsriGeometry(unionedGeometry as SupportedGeometry),
+            geometry: selectingRecord.getGeometry(),
           },
           widgetId: widgetId,
         },
-        mainControllerRef.current.signal
+        mainControllerRef.current.signal,
+        (progress) => setSelectionProgress(progress)
       );
-      console.log("selectResults", selectResults);
     } catch (err) {
       if (err.name === "AbortError") {
         console.log("Previous query aborted.");
       } else {
         console.error(err);
       }
+    } finally {
+      setIsLoading(false);
+      setSelectionProgress(null);
     }
   }
 
@@ -293,6 +225,16 @@ export default function LocationForm({
 
       {/* Action buttons */}
       <div className="d-flex justify-end mt-3 ml-auto" style={{ gap: "10px" }}>
+        <Button
+          onClick={() => {
+            setIsLoading(false);
+            setSelectionProgress(null);
+            mainControllerRef.current?.abort();
+            secondControllerRef.current?.abort();
+          }}
+        >
+          Cancel
+        </Button>
         <Button onClick={executeSelection}>Apply</Button>
         <Button
           type="primary"
@@ -303,6 +245,15 @@ export default function LocationForm({
         >
           OK
         </Button>
+      </div>
+      <div className="mt-2">
+        {isLoading && (
+          <Progress
+            color="primary"
+            type="linear"
+            value={Math.round((selectionProgress ?? 0) * 100)}
+          />
+        )}
       </div>
     </div>
   );
