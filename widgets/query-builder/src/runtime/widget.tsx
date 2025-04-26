@@ -6,13 +6,12 @@ import {
 } from "jimu-core";
 import { type IMConfig } from "../config";
 import { JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button, FloatingPanel } from "jimu-ui";
 import AttributeForm from "../components/attributeForm/attributeForm";
 import LocationForm from "../components/locationForm/locationForm";
 
 const Widget = (props: AllWidgetProps<IMConfig>) => {
-  const [activeView, setActiveView] = useState<JimuMapView>(null);
   const [selectionType, setSelectionType] = useState<
     "attributes" | "location" | null
   >(null);
@@ -21,14 +20,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [dialogVisible, setDialogVisible] = useState(false);
 
   function onActiveViewChange(activeView: JimuMapView) {
-    setActiveView(activeView ?? null);
-
     if (activeView) {
       activeView.whenJimuMapViewLoaded().then((jimuMapView) => {
         const mapDataSource = jimuMapView.getMapDataSource();
-        console.log("Map Data Source", mapDataSource);
 
-        mapDataSource.childDataSourcesReady().then((childDataSources) => {
+        mapDataSource.childDataSourcesReady().then(() => {
           const flds = mapDataSource.getDataSourcesByType(
             DataSourceTypes.FeatureLayer
           ) as FeatureLayerDataSource[];
@@ -68,8 +64,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
       {dialogVisible && (
         <FloatingPanel
-          autoSize
           showHeaderCollapse
+          defaultSize={{
+            width: 400,
+            height: 400,
+          }}
           headerTitle={`Select by ${
             selectionType?.charAt(0).toUpperCase() + selectionType?.slice(1)
           }`}
@@ -79,6 +78,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             setSelectionType(null);
           }}
           open={dialogVisible}
+          style={{ maxHeight: "500px" }}
         >
           {selectionType === "attributes" ? (
             <AttributeForm

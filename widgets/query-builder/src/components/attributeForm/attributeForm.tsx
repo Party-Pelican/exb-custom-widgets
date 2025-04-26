@@ -1,10 +1,18 @@
 import {
+  ClauseLogic,
+  DataSource,
   DataSourceManager,
   FeatureLayerDataSource,
   FieldSchema,
+  Immutable,
+  IMSqlExpression,
+  QueryScope,
   React,
+  SqlClause,
+  SqlExpressionMode,
+  ReactDOM,
 } from "jimu-core";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   TextInput,
   Select,
@@ -15,10 +23,12 @@ import {
   Icon,
   NumericInput,
   Progress,
+  Switch,
 } from "jimu-ui";
-
 import deleteIcon from "../../runtime/assets/x-24.svg";
 import { DatePicker } from "jimu-ui/basic/date-picker";
+import SQLForm from "../sqlForm/sqlForm";
+import { SqlExpressionBuilder } from "jimu-ui/advanced/sql-expression-builder";
 
 type AttributeFormProps = {
   featureLayerDataSources: FeatureLayerDataSource[];
@@ -100,7 +110,8 @@ export default function AttributeForm({
     null
   );
   const [isLoading, setIsLoading] = useState(false);
-
+  const [useSQL, setUseSQL] = useState(false);
+  const [sql, setSQL] = useState<IMSqlExpression>({} as IMSqlExpression);
   const currentControllerRef = useRef<AbortController | null>(null);
 
   const handleClauseChange = (index, key, value) => {
@@ -136,6 +147,7 @@ export default function AttributeForm({
       inputLayerId
     ) as FeatureLayerDataSource;
     setSelectedDataSource(selectedDataSource);
+    console.log("Selected data source:", selectedDataSource);
 
     const inputLayerSchema = featureLayerDataSources
       .find((flds) => flds.id === inputLayerId)
@@ -205,14 +217,21 @@ export default function AttributeForm({
   }
 
   return (
-    <div className="d-flex flex-column p-3">
+    <div
+      className="d-flex flex-column p-2"
+      style={{
+        gap: "0.5rem",
+        maxHeight: "100%",
+        overflowY: "auto",
+        height: "100%",
+      }}
+    >
       {/* Input Rows */}
 
       <Select
         value={inputLayer}
         onChange={handleInputLayerChange}
         placeholder="Input Rows"
-        className="mt-3"
       >
         {featureLayerDataSources.map((flds) => (
           <Option key={flds.id} value={flds.id}>
@@ -226,7 +245,6 @@ export default function AttributeForm({
       <Select
         value={selectionType}
         onChange={(e) => setSelectionType(e.target.value)}
-        className="mt-3"
         placeholder="Selection Type"
       >
         <Option value="new">New selection</Option>
@@ -240,21 +258,32 @@ export default function AttributeForm({
       </Select>
 
       {/* Expression Area */}
-      <Label className="mt-3">Expression</Label>
+      <div className="d-flex justify-content-between">
+        <Label>Expression</Label>
+        <Label>
+          SQL
+          <Switch
+            className="ml-2"
+            checked={useSQL}
+            onChange={() => setUseSQL((prevState) => !prevState)}
+          ></Switch>
+        </Label>
+      </div>
 
       {/* Clause Builder */}
-      <div className="overflow-auto w-100" style={{ maxHeight: "200px" }}>
-        {clauses.map((clause, index) => (
+      {useSQL ? (
+        <SQLForm fieldsIndex={selectedDataSource?.layer.fieldsIndex} />
+      ) : (
+        clauses.map((clause, index) => (
           <div
-            className="d-flex align-items-center mb-2 flex-nowrap w-100"
             key={index}
             style={{ gap: "2px" }}
+            className="d-flex align-items-center mb-2 flex-nowrap w-100"
           >
             {index > 0 && (
               <Select
                 value={clause.logic}
                 onChange={(e) => updateClause(index, "logic", e.target.value)}
-                className="flex-grow-1"
               >
                 <Option value="AND">AND</Option>
                 <Option value="OR">OR</Option>
@@ -267,7 +296,6 @@ export default function AttributeForm({
                 handleClauseChange(index, "field", e.target.value)
               }
               placeholder="Field"
-              className="flex-grow-1"
             >
               {/* Replace with real fields */}
               {fields
@@ -290,7 +318,6 @@ export default function AttributeForm({
                 handleClauseChange(index, "operator", e.target.value)
               }
               placeholder="Operator"
-              className="flex-grow-1"
             >
               {getOperatorsForField(
                 fields.find((field) => field.name == clause.field)?.esriType ||
@@ -320,24 +347,26 @@ export default function AttributeForm({
               </Button>
             )}
           </div>
-        ))}
-      </div>
+        ))
+      )}
 
-      <Button type="tertiary" onClick={addClause}>
-        + Add Clause
-      </Button>
+      {!useSQL && (
+        <Button type="tertiary" onClick={addClause}>
+          + Add Clause
+        </Button>
+      )}
 
       <Label>
         <Checkbox
           checked={invertWhere}
           onChange={(e) => setInvertWhere(e.target.checked)}
-          className="mt-2 mr-2"
+          className="mr-2"
         ></Checkbox>
         Invert Where Clause
       </Label>
 
       {/* Action buttons */}
-      <div className="d-flex justify-end mt-3 ml-auto" style={{ gap: "10px" }}>
+      <div>
         <Button
           onClick={() => {
             setIsLoading(false);
@@ -358,7 +387,7 @@ export default function AttributeForm({
           OK
         </Button>
       </div>
-      <div className="mt-2 w-100">
+      <div>
         {isLoading && (
           <Progress
             color="primary"

@@ -5,7 +5,7 @@ import {
   React,
 } from "jimu-core";
 import { useRef, useState } from "react";
-import { Select, Option, Button, Label, Progress } from "jimu-ui";
+import { Select, Option, Button, Progress } from "jimu-ui";
 
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 
@@ -144,7 +144,10 @@ export default function LocationForm({
   }
 
   return (
-    <div className="d-flex flex-column p-3" style={{ minWidth: "350px" }}>
+    <div
+      className="d-flex flex-column p-3"
+      style={{ minWidth: "350px", overflowY: "auto" }}
+    >
       {/* Input Layer */}
 
       <Select
