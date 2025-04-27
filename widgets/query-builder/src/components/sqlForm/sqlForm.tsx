@@ -5,9 +5,10 @@ import FieldsIndex from "@arcgis/core/layers/support/FieldsIndex.js";
 
 type SQLFormProps = {
   fieldsIndex: FieldsIndex;
+  updateSQL: (v) => void;
 };
 
-export default function SQLForm({ fieldsIndex }: SQLFormProps) {
+export default function SQLForm({ fieldsIndex, updateSQL }: SQLFormProps) {
   async function checkWhereClause(
     sql: string,
     fieldsIndex: FieldsIndex
@@ -36,7 +37,9 @@ export default function SQLForm({ fieldsIndex }: SQLFormProps) {
 
   return (
     <TextArea
-      checkValidityOnAccept={(value) => checkWhereClause(value, fieldsIndex)}
+      style={{ maxWidth: "50vw", overflowX: "auto" }}
+      onAcceptValue={(value) => checkWhereClause(value, fieldsIndex)}
+      onChange={(e) => updateSQL(e.target.value)}
     ></TextArea>
   );
 }

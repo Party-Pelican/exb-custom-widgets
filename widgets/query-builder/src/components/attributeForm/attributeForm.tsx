@@ -111,7 +111,7 @@ export default function AttributeForm({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [useSQL, setUseSQL] = useState(false);
-  const [sql, setSQL] = useState<IMSqlExpression>({} as IMSqlExpression);
+  const [sql, setSQL] = useState<string | null>(null);
   const currentControllerRef = useRef<AbortController | null>(null);
 
   const handleClauseChange = (index, key, value) => {
@@ -181,9 +181,15 @@ export default function AttributeForm({
       })
       .join(" ");
 
+    if (useSQL) {
+      whereClause = sql;
+    }
+
     if (invertWhere) {
       whereClause = `NOT (${whereClause})`;
     }
+
+    console.log("executing where clause: ", whereClause);
 
     try {
       // Cancel previous query if it's still running
@@ -272,7 +278,10 @@ export default function AttributeForm({
 
       {/* Clause Builder */}
       {useSQL ? (
-        <SQLForm fieldsIndex={selectedDataSource?.layer.fieldsIndex} />
+        <SQLForm
+          fieldsIndex={selectedDataSource?.layer.fieldsIndex}
+          updateSQL={setSQL}
+        />
       ) : (
         clauses.map((clause, index) => (
           <div
