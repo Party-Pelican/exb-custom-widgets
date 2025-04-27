@@ -221,7 +221,7 @@ export default function AttributeForm({
       className="d-flex flex-column p-2"
       style={{
         gap: "0.5rem",
-        maxHeight: "100%",
+        maxHeight: "50vh",
         overflowY: "auto",
         height: "100%",
       }}
@@ -278,7 +278,7 @@ export default function AttributeForm({
           <div
             key={index}
             style={{ gap: "2px" }}
-            className="d-flex align-items-center mb-2 flex-nowrap w-100"
+            className="d-flex align-items-center flex-nowrap w-100"
           >
             {index > 0 && (
               <Select
@@ -366,7 +366,7 @@ export default function AttributeForm({
       </Label>
 
       {/* Action buttons */}
-      <div>
+      <div className="d-flex justify-content-end" style={{ gap: "0.5rem" }}>
         <Button
           onClick={() => {
             setIsLoading(false);

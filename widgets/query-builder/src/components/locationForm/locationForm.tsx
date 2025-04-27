@@ -146,7 +146,12 @@ export default function LocationForm({
   return (
     <div
       className="d-flex flex-column p-3"
-      style={{ minWidth: "350px", overflowY: "auto" }}
+      style={{
+        gap: "0.5rem",
+        maxHeight: "50vh",
+        overflowY: "auto",
+        height: "100%",
+      }}
     >
       {/* Input Layer */}
 
@@ -154,7 +159,6 @@ export default function LocationForm({
         value={inputLayer}
         onChange={handleInputLayerChange}
         placeholder="Input Features"
-        className="mt-3"
       >
         {featureLayerDataSources
           .filter((flds) => flds.id != selectingFeatures)
@@ -171,7 +175,6 @@ export default function LocationForm({
         value={relationship}
         onChange={handleRelationshipChange}
         placeholder="Relationship Type"
-        className="mt-3"
       >
         {spatialRelationships.map((relationship) => {
           return (
@@ -186,7 +189,6 @@ export default function LocationForm({
         value={selectingFeatures}
         onChange={handleSelectingFeaturesChange}
         placeholder="Selecting Features"
-        className="mt-3"
       >
         {featureLayerDataSources
           .filter((flds) => flds.id != inputLayer)
@@ -203,7 +205,6 @@ export default function LocationForm({
         value={selectionType}
         onChange={(e) => setSelectionType(e.target.value)}
         placeholder="Selection Type"
-        className="mt-3"
       >
         <Option value="new">New selection</Option>
 
@@ -228,7 +229,7 @@ export default function LocationForm({
       }
 
       {/* Action buttons */}
-      <div className="d-flex justify-end mt-3 ml-auto" style={{ gap: "10px" }}>
+      <div className="d-flex justify-content-end" style={{ gap: "0.5rem" }}>
         <Button
           onClick={() => {
             setIsLoading(false);
@@ -250,7 +251,7 @@ export default function LocationForm({
           OK
         </Button>
       </div>
-      <div className="mt-2">
+      <div>
         {isLoading && (
           <Progress
             color="primary"

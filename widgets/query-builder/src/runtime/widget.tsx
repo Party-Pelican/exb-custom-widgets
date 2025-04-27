@@ -65,10 +65,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       {dialogVisible && (
         <FloatingPanel
           showHeaderCollapse
-          defaultSize={{
-            width: 400,
-            height: 400,
-          }}
+          autoSize
           headerTitle={`Select by ${
             selectionType?.charAt(0).toUpperCase() + selectionType?.slice(1)
           }`}
@@ -78,7 +75,6 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             setSelectionType(null);
           }}
           open={dialogVisible}
-          style={{ maxHeight: "500px" }}
         >
           {selectionType === "attributes" ? (
             <AttributeForm
