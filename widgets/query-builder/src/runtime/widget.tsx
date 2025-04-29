@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Button, FloatingPanel } from "jimu-ui";
 import AttributeForm from "../components/attributeForm/attributeForm";
 import LocationForm from "../components/locationForm/locationForm";
+import { dataSourceUtils } from "jimu-core";
 
 const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [selectionType, setSelectionType] = useState<
