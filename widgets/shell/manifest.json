@@ -3,45 +3,27 @@
   "label": "Shell",
   "type": "widget",
   "widgetType": "LAYOUT",
-  "version": "1.15.0",
-  "exbVersion": "1.15.0",
+  "version": "1.16.0",
+  "exbVersion": "1.16.0",
   "author": "Esri R&D Center Beijing",
-  "description": "This is a calcite panel layout that accepts other widgets in the layout.",
+  "description": "This is the widget used in developer documentation",
   "copyright": "",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
   "properties": {
-    "hasEmbeddedLayout": true
+    "hasSettingPage": false,
+    "supportAutoSize": false,
+    "hasConfigInSettingPage": false
   },
   "layouts": [
     {
-      "name": "default",
-      "label": "Default",
-      "type": "FIXED"
-    },
-    {
-      "name": "panel-start",
-      "label": "Panel Start",
-      "type": "FIXED"
-    },
-    {
-      "name": "panel-end",
-      "label": "Panel End",
-      "type": "FIXED"
-    },
-    {
-      "name": "panel-top",
-      "label": "Panel Top",
-      "type": "FIXED"
-    },
-    {
-      "name": "panel-bottom",
-      "label": "Panel Bottom",
+      "name": "shell-panel-layout",
+      "label": "shell-panel-layout",
       "type": "FIXED"
     }
   ],
-  "translatedLocales": ["en"],
+  "translatedLocales": ["en", "zh-cn"],
   "defaultSize": {
-    "width": 400,
-    "height": 600
+    "width": 200,
+    "height": 200
   }
 }

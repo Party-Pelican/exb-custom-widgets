@@ -6,7 +6,7 @@ import {
 } from "jimu-core";
 import { type IMConfig } from "../config";
 import { JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button, FloatingPanel } from "jimu-ui";
 import AttributeForm from "../components/attributeForm/attributeForm";
 import LocationForm from "../components/locationForm/locationForm";
@@ -18,6 +18,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [featureLayerDataSources, setFeatureLayerDataSources] =
     useState<FeatureLayerDataSource[]>(null);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const floatingPanelRef = useRef(null);
 
   function onActiveViewChange(activeView: JimuMapView) {
     if (activeView) {
@@ -28,6 +29,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           const flds = mapDataSource.getDataSourcesByType(
             DataSourceTypes.FeatureLayer
           ) as FeatureLayerDataSource[];
+
           setFeatureLayerDataSources(flds);
         });
       });
@@ -35,7 +37,10 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   }
 
   return (
-    <div className="w-100 h-100 d-flex flex-column flex-md-row flex-wrap overflow-auto">
+    <div
+      className="w-100 h-100 d-flex flex-column flex-md-row flex-wrap overflow-auto"
+      ref={floatingPanelRef}
+    >
       <JimuMapViewComponent
         useMapWidgetId={props.useMapWidgetIds?.[0]}
         onActiveViewChange={onActiveViewChange}
@@ -75,6 +80,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             setSelectionType(null);
           }}
           open={dialogVisible}
+          reference={floatingPanelRef.current}
         >
           {selectionType === "attributes" ? (
             <AttributeForm

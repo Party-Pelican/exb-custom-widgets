@@ -1,23 +1,17 @@
 /** @jsx jsx */
-import {
-  React,
-  ReactRedux,
-  classNames,
-  jsx,
-  css
-} from 'jimu-core'
-import { styleUtils, Button } from 'jimu-ui'
+import { React, ReactRedux, classNames, jsx, css } from "jimu-core";
+import { styleUtils, Button } from "jimu-ui";
 import {
   utils,
   type LayoutProps,
-  type StateToLayoutProps
-} from 'jimu-layouts/layout-runtime'
-import { PanelLayoutItem } from './panel-item'
-import { ItemTitle } from '../common/item-title'
+  type StateToLayoutProps,
+} from "jimu-layouts/layout-runtime";
+import { PanelLayoutItem } from "./panel-item";
+import { ItemTitle } from "../common/item-title";
 
 interface State {
-  activeItemId: string
-  minimizedList: string[]
+  activeItemId: string;
+  minimizedList: string[];
 }
 
 const minimizedListStyle = css`
@@ -32,45 +26,56 @@ const minimizedListStyle = css`
   div.item {
     border-radius: 5px 0;
   }
-`
+`;
 
-class Layout extends React.PureComponent<LayoutProps & StateToLayoutProps, State> {
-  static displayName = 'FloatingLayout'
-  ref: HTMLElement
+class Layout extends React.PureComponent<
+  LayoutProps & StateToLayoutProps,
+  State
+> {
+  static displayName = "FloatingLayout";
+  ref: HTMLElement;
 
-  constructor (props) {
-    super(props)
+  constructor(props) {
+    super(props);
 
     this.state = {
-      activeItemId: '',
-      minimizedList: []
-    }
+      activeItemId: "",
+      minimizedList: [],
+    };
   }
 
   handleItemClick = (itemId: string) => {
     if (this.state.activeItemId !== itemId) {
-      this.setState({ activeItemId: itemId })
+      this.setState({ activeItemId: itemId });
     }
-  }
+  };
 
   handleMinimize = (itemId: string) => {
-    this.setState({ minimizedList: [].concat(this.state.minimizedList, itemId) })
-  }
+    this.setState({
+      minimizedList: [].concat(this.state.minimizedList, itemId),
+    });
+  };
 
   handleMinimizedItemClick = (e, itemId: string) => {
-    e.stopPropagation()
-    const idx = this.state.minimizedList.indexOf(itemId)
+    e.stopPropagation();
+    const idx = this.state.minimizedList.indexOf(itemId);
     if (idx >= 0) {
-      this.setState({ minimizedList: this.state.minimizedList.filter(item => item !== itemId) })
+      this.setState({
+        minimizedList: this.state.minimizedList.filter(
+          (item) => item !== itemId
+        ),
+      });
     }
-  }
+  };
 
-  createItem (layoutItemId: string): JSX.Element {
-    const { layout } = this.props
-    const layoutItem = layout.content[layoutItemId]
+  createItem(layoutItemId: string): JSX.Element {
+    const { layout } = this.props;
+    const layoutItem = layout.content[layoutItemId];
     if (!layoutItem) {
-      return null
+      return null;
     }
+
+    console.log("layoutItem", layoutItem);
     return (
       <PanelLayoutItem
         key={`${layout.id}_${layoutItemId}`}
@@ -81,58 +86,64 @@ class Layout extends React.PureComponent<LayoutProps & StateToLayoutProps, State
         onClick={this.handleItemClick}
         onMinimized={this.handleMinimize}
       />
-    )
+    );
   }
 
-  createMinimizedItem (layoutItemId: string): JSX.Element {
-    const { layout } = this.props
+  createMinimizedItem(layoutItemId: string): JSX.Element {
+    const { layout } = this.props;
     return (
       <Button
-        className='item'
+        className="item"
         key={layoutItemId}
-        onClick={(e) => { this.handleMinimizedItemClick(e, layoutItemId) }}
+        onClick={(e) => {
+          this.handleMinimizedItemClick(e, layoutItemId);
+        }}
       >
         <ItemTitle layoutId={layout.id} layoutItemId={layoutItemId} />
       </Button>
-    )
+    );
   }
 
-  render (): JSX.Element {
-    const { layout, className, style } = this.props
+  render(): JSX.Element {
+    const { layout, className, style } = this.props;
     if (layout == null) {
-      return null
+      return null;
     }
 
-    const content = Object.keys(layout.content).filter(layoutItemId => {
-      const layoutItem = layout.content[layoutItemId]
-      return !layoutItem.setting?.docked
-    })
+    const content = Object.keys(layout.content).filter((layoutItemId) => {
+      const layoutItem = layout.content[layoutItemId];
+      return !layoutItem.setting?.docked;
+    });
 
-    const mergedClasses = classNames('layout floating-layout', className)
+    const mergedClasses = classNames("layout floating-layout", className);
 
     const mergedStyle = {
-      height: 'auto',
-      position: 'relative',
+      height: "auto",
+      position: "relative",
       ...style,
       ...styleUtils.toCSSStyle(layout.setting?.style),
-      width: '100%',
-      overflow: 'hidden'
-    }
+      width: "100%",
+      overflow: "hidden",
+    };
 
     return (
       <div
         className={mergedClasses}
-        ref={el => (this.ref = el)}
+        ref={(el) => (this.ref = el)}
         style={mergedStyle}
         data-layoutid={layout.id}
       >
         {(content as any).map((layoutItemId) => this.createItem(layoutItemId))}
-        <div className='minimized-list' css={minimizedListStyle}>
-          {this.state.minimizedList.map(itemId => this.createMinimizedItem(itemId))}
+        <div className="minimized-list" css={minimizedListStyle}>
+          {this.state.minimizedList.map((itemId) =>
+            this.createMinimizedItem(itemId)
+          )}
         </div>
       </div>
-    )
+    );
   }
 }
 
-export default ReactRedux.connect<StateToLayoutProps, unknown, LayoutProps>(utils.mapStateToLayoutProps)(Layout as any)
+export default ReactRedux.connect<StateToLayoutProps, unknown, LayoutProps>(
+  utils.mapStateToLayoutProps
+)(Layout as any);

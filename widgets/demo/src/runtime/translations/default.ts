@@ -17,8 +17,10 @@
   A copy of the license is available in the repository's
   LICENSE file.
 */
-import { type ImmutableObject } from "jimu-core";
-
-export interface Config {}
-
-export type IMConfig = ImmutableObject<Config>;
+export default {
+  _widgetLabel: 'Demo (Class)',
+  widgetProperties: 'Widget Properties',
+  widgetFunctions: 'Widget Functions',
+  widgetName: 'widget name:',
+  widgetProps: 'widget props:'
+}

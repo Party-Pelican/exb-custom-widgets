@@ -17,8 +17,7 @@
   A copy of the license is available in the repository's
   LICENSE file.
 */
-import { type ImmutableObject } from "jimu-core";
-
-export interface Config {}
-
-export type IMConfig = ImmutableObject<Config>;
+System.register([], function (_export) {return {execute: function () {_export({
+  p1: '属性1',
+  p2: '属性2'
+})}}});

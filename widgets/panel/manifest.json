@@ -3,30 +3,25 @@
   "label": "Panel",
   "type": "widget",
   "widgetType": "LAYOUT",
-  "version": "1.15.0",
-  "exbVersion": "1.15.0",
+  "version": "1.17.0",
+  "exbVersion": "1.17.0",
   "author": "Esri R&D Center Beijing",
-  "description": "This is a calcite panel layout that accepts other widgets in the layout.",
+  "description": "This is the widget used in developer guide",
   "copyright": "",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
   "properties": {
-    "hasEmbeddedLayout": true
+    "hasSettingPage": false,
+    "supportAutoSize": false
   },
   "layouts": [
     {
-      "name": "default",
-      "label": "Default",
-      "type": "FIXED"
-    },
-    {
-      "name": "action-bar",
-      "label": "Action Bar",
+      "name": "PANEL-DEFAULT",
+      "label": "panel-default",
       "type": "FIXED"
     }
   ],
-  "translatedLocales": ["en"],
   "defaultSize": {
     "width": 400,
-    "height": 600
+    "height": 400
   }
 }

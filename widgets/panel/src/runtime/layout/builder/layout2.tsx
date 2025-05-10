@@ -164,7 +164,6 @@ class Layout
       right: containerRect.width - (itemRect.left + itemRect.width),
       bottom: containerRect.height - (itemRect.top + itemRect.height),
     };
-    console.log("handleDrop", draggingItem, containerRect, itemRect);
     this.addWidgetToLayout(draggingItem, containerRect, rect as any).catch(
       (err) => {
         console.error(err);
@@ -178,7 +177,6 @@ class Layout
     itemRect: ClientRect
   ): Promise<void> => {
     const { layout } = this.props;
-    console.log("IMLAYOUTJSON", layout.id);
     const result = await addItemToLayout(
       getAppConfigAction().appConfig,
       draggingItem,

@@ -1,29 +1,17 @@
-import { React, type AllWidgetProps } from "jimu-core";
+import { type AllWidgetProps, IMState, React } from "jimu-core";
 import { type IMConfig } from "../config";
-import {
-  CalciteShell,
-  CalciteShellPanel,
-  CalcitePanel,
-} from "calcite-components";
-import { LayoutEntry } from "jimu-layouts/layout-runtime";
-import { WidgetPlaceholder } from "jimu-ui";
-import plusIcon from "../runtime/assets/icons/plus-square-24.svg";
 
-const SlotComponents = {
-  default: CalcitePanel,
-  "panel-start": CalciteShellPanel,
-  "panel-top": CalciteShellPanel,
-  "panel-end": CalciteShellPanel,
-  "panel-bottom": CalciteShellPanel,
-};
+import Layout from "./layout/runtime/layout";
+import { useSelector } from "react-redux";
 
-export default function Widget(props: AllWidgetProps<IMConfig>) {
-  let LayoutComponent: typeof LayoutEntry;
-  if (window.jimuConfig.isInBuilder) {
-    LayoutComponent = props.builderSupportModules.LayoutEntry;
-  } else {
-    LayoutComponent = LayoutEntry;
-  }
+interface ExtraProps {
+  locale: string;
+}
+
+export default function Widget(props: AllWidgetProps<IMConfig> & ExtraProps) {
+  const LayoutComponent = !window.jimuConfig.isInBuilder
+    ? Layout
+    : props.builderSupportModules.widgetModules.LayoutBuilder;
 
   if (LayoutComponent == null) {
     return (
@@ -39,56 +27,13 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
     );
   }
 
-  console.log(props.config.shell);
+  const layoutName = Object.keys(props.layouts)[0];
+
+  console.log("layoutName", props.layouts[layoutName]);
 
   return (
-    <CalciteShell
-      id="shell-widget"
-      style={{ backgroundColor: "transparent" }}
-      contentBehind={props.config.shell.contentBehind}
-    >
-      {props.layouts &&
-        Object.entries(props.config?.shell?.slotsVisibility).map(
-          ([slot, isVisible]) => {
-            const SlotComponent = SlotComponents[slot];
-            if (isVisible && SlotComponent && slot !== "default") {
-              return (
-                <WidgetPlaceholder icon={plusIcon} slot={slot}>
-                  <LayoutComponent
-                    isInWidget
-                    layouts={props.layouts[slot]}
-                    className="h-100 w-100"
-                  ></LayoutComponent>
-                </WidgetPlaceholder>
-              );
-            } else if (isVisible && SlotComponent && slot == "default") {
-              return (
-                <WidgetPlaceholder icon={plusIcon} slot={slot}>
-                  <LayoutComponent
-                    isInWidget
-                    layouts={props.layouts[slot]}
-                    className="h-100 w-100"
-                  ></LayoutComponent>
-                </WidgetPlaceholder>
-              );
-            }
-          }
-        )}
-    </CalciteShell>
+    <div className="w-100 h-100">
+      <LayoutComponent layouts={props.layouts[layoutName]}></LayoutComponent>
+    </div>
   );
-}
-
-{
-  /* <SlotComponent
-                  key={slot}
-                  id={slot}
-                  heading={slot}
-                  {...props.config.shell[slot]}
-                >
-                  <LayoutComponent
-                    isInWidget
-                    layouts={props.layouts[slot]}
-                    className="h-100 w-100"
-                  ></LayoutComponent>
-                </SlotComponent> */
 }
