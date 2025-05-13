@@ -86,9 +86,7 @@ export default function Layout(props: LayoutProps & { config: IMConfig }) {
             >
               {/* Replace this with your actual widget rendering logic */}
               <WidgetRenderer
-                className={
-                  "builder-layout-item d-flex w-100 h-100 overflow-auto"
-                }
+                className={"d-flex w-100 h-100 overflow-auto"}
                 layoutId={layoutFromRedux.layout.id}
                 layoutItemId={selectedItemId}
                 {...widgetProps}

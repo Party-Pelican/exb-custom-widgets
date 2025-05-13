@@ -7,7 +7,6 @@ import {
 import { type AllWidgetSettingProps } from "jimu-for-builder";
 import { type IMConfig } from "../config";
 import { useSelector } from "react-redux";
-import { IconPicker } from "jimu-ui/advanced/resource-selector";
 import { useEffect } from "react";
 
 export default function Setting(props: AllWidgetSettingProps<IMConfig>) {

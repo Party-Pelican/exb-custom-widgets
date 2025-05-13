@@ -62,7 +62,6 @@ export default function Layout(props: LayoutProps & { config: IMConfig }) {
   function handleOnSelect(item: LayoutItemConstructorProps) {
     addItemToLayout(appConfig, item, layoutFromRedux.layout.id)
       .then((result) => {
-        console.log("result", result);
         appStore.dispatch(appActions.appConfigChanged(result.updatedAppConfig));
         setIsOpen(false);
       })
@@ -140,9 +139,7 @@ export default function Layout(props: LayoutProps & { config: IMConfig }) {
               >
                 {widgetProps && (
                   <WidgetRendererInBuilder
-                    className={
-                      "builder-layout-item d-flex w-100 h-100 overflow-auto"
-                    }
+                    className={"d-flex w-100 h-100 overflow-auto"}
                     layoutId={layoutFromRedux.layout.id}
                     layoutItemId={selectedItemId}
                     {...widgetProps}
@@ -151,6 +148,7 @@ export default function Layout(props: LayoutProps & { config: IMConfig }) {
               </CalcitePanel>
             )}
           </CalciteShellPanel>
+          <CalcitePanel></CalcitePanel>
         </CalciteShell>
       )}
     </>
