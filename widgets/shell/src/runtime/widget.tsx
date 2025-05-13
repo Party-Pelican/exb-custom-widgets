@@ -1,14 +1,9 @@
-import { type AllWidgetProps, IMState, React } from "jimu-core";
+import { type AllWidgetProps, React } from "jimu-core";
 import { type IMConfig } from "../config";
 
 import Layout from "./layout/runtime/layout";
-import { useSelector } from "react-redux";
 
-interface ExtraProps {
-  locale: string;
-}
-
-export default function Widget(props: AllWidgetProps<IMConfig> & ExtraProps) {
+export default function Widget(props: AllWidgetProps<IMConfig>) {
   const LayoutComponent = !window.jimuConfig.isInBuilder
     ? Layout
     : props.builderSupportModules.widgetModules.LayoutBuilder;
@@ -33,7 +28,10 @@ export default function Widget(props: AllWidgetProps<IMConfig> & ExtraProps) {
 
   return (
     <div className="w-100 h-100">
-      <LayoutComponent layouts={props.layouts[layoutName]}></LayoutComponent>
+      <LayoutComponent
+        layouts={props.layouts[layoutName]}
+        config={props.config}
+      ></LayoutComponent>
     </div>
   );
 }

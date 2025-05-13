@@ -19,6 +19,59 @@
 */
 import { type ImmutableObject } from "jimu-core";
 
-export interface Config {}
+type action = {
+  appearance: "solid" | "transparent";
+  icon: string;
+  label: string | null;
+  text: string;
+  textEnabled: boolean;
+  alignment: "start" | "end" | "center";
+};
+
+export interface Config {
+  shell: {
+    contentBehind: boolean;
+  };
+  panel: {
+    closable: boolean;
+    menuPlacement:
+      | "auto"
+      | "auto-end"
+      | "auto-start"
+      | "bottom"
+      | "bottom-end"
+      | "bottom-start"
+      | "leading"
+      | "leading-end"
+      | "leading-start"
+      | "left"
+      | "left-end"
+      | "left-start"
+      | "right"
+      | "right-end"
+      | "right-start"
+      | "top"
+      | "top-end"
+      | "top-start"
+      | "trailing"
+      | "trailing-end"
+      | "trailing-start";
+    overlayPositioning: "absolute" | "fixed";
+  };
+  shellPanel: {
+    collapsed: boolean;
+    displayMode: "dock" | "float-all" | "float-content" | "overlay";
+    layout: "vertical" | "horizontal";
+    position: "start" | "end";
+    resizable: boolean;
+  };
+  actionBar: {
+    expandDisabled: boolean;
+    expanded: boolean;
+    layout: "vertical" | "horizontal";
+    position: "start" | "end";
+  };
+  actions: action[];
+}
 
 export type IMConfig = ImmutableObject<Config>;

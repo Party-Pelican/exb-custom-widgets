@@ -1,1 +1,24 @@
-{}
+{
+  "shell": {
+    "contentBehind": false
+  },
+  "panel": {
+    "closable": true,
+    "menuPlacement": "bottom-end",
+    "overlayPositioning": "absolute"
+  },
+  "shellPanel": {
+    "collapsed": false,
+    "displayMode": "dock",
+    "layout": "vertical",
+    "position": "start",
+    "resizable": false
+  },
+  "actionBar": {
+    "expandDisabled": false,
+    "expanded": false,
+    "layout": "vertical",
+    "position": "start"
+  },
+  "actions": []
+}

@@ -6,43 +6,33 @@ import {
   CalciteShellPanel,
 } from "calcite-components";
 import {
-  appActions,
   getAppStore,
   IMState,
-  LayoutItemConstructorProps,
+  LayoutItemType,
   React,
+  ReactRedux,
 } from "jimu-core";
-import { addItemToLayout } from "jimu-layouts/layout-builder";
+
 import {
   WidgetRenderer,
-  SectionRenderer,
   LayoutProps,
   utils,
 } from "jimu-layouts/layout-runtime";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useSelector } from "react-redux";
+import { type IMConfig } from "../../../config";
 
-function getWidgetNameFromIconPath(iconPath: string): string | null {
-  try {
-    const parts = iconPath.split("/");
-    const iconIndex = parts.indexOf("icon.svg");
+const defaultAction = {
+  appearance: "solid",
+  icon: "widgets-group",
+  label: "widget",
+  text: "widget",
+  textEnabled: true,
+  alignment: "start",
+} as any;
 
-    // fallback if not split directly on icon.svg
-    const iconFileIndex = parts.findIndex((part) => part.endsWith("icon.svg"));
-    if (iconFileIndex > 0) {
-      return parts[iconFileIndex - 1]; // folder before icon.svg
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-export default function Layout(props: LayoutProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function Layout(props: LayoutProps & { config: IMConfig }) {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const anchorEl = useRef<HTMLCalciteActionElement>(null);
   const appStore = getAppStore();
   const appConfig = appStore.getState().appConfig;
 
@@ -50,61 +40,37 @@ export default function Layout(props: LayoutProps) {
     utils.mapStateToLayoutProps(state, props)
   );
 
-  console.log("layoutFromRedux", layoutFromRedux);
-  console.log("props", props);
+  const widgetProps = useSelector((state: IMState) => {
+    if (!selectedItemId || !layoutFromRedux?.layout?.id) return null;
 
-  function handleOnSelect(item: LayoutItemConstructorProps) {
-    console.log("item", item);
-    const appStore = getAppStore();
-    const appConfig = appStore.getState().appConfig;
-    console.log("appStore", appStore);
-    addItemToLayout(appConfig, item, layoutFromRedux.layout.id)
-      .then((result) => {
-        console.log("result", result);
-        appStore.dispatch(appActions.appConfigChanged(result.updatedAppConfig));
-        setIsOpen(false);
-      })
-      .catch((err) => {
-        console.error("addItemToLayout error", err);
+    const layout = state.appConfig.layouts[layoutFromRedux.layout.id];
+    const layoutItem = layout?.content?.[selectedItemId];
+
+    if (layoutItem?.type === LayoutItemType.Widget) {
+      return utils.mapStateToWidgetProps(state, {
+        layoutId: layoutFromRedux.layout.id,
+        layoutItemId: selectedItemId,
       });
-  }
+    }
 
-  function handleIsAccepted(
-    item: LayoutItemConstructorProps,
-    isReplacePlaceholder: boolean
-  ) {
-    return item.itemType == "WIDGET";
-  }
+    return null;
+  }, ReactRedux.shallowEqual);
 
   const selectedItem = selectedItemId
     ? layoutFromRedux.layout.content[selectedItemId]
     : null;
   return (
     <>
-      {/* {isOpen && anchorEl.current && (
-        <WidgetListPopper
-          referenceElement={anchorEl.current}
-          isAccepted={handleIsAccepted}
-          onSelect={handleOnSelect}
-          onClose={() => setIsOpen(false)}
-        ></WidgetListPopper>
-      )} */}
-      <CalciteShell style={{ background: "transparent" }}>
-        <CalciteShellPanel slot="panel-start" displayMode="overlay">
-          <CalciteActionBar slot="action-bar">
-            {/* <CalciteAction
-              icon="plus"
-              ref={anchorEl}
-              onClick={() => setIsOpen((prevState) => !prevState)}
-            ></CalciteAction> */}
+      <CalciteShell {...props.config.shell}>
+        <CalciteShellPanel slot="panel-start" {...props.config.shellPanel}>
+          <CalciteActionBar slot="action-bar" {...props.config.actionBar}>
             {Object.entries(layoutFromRedux.layout.content).map(
-              ([id, item]) => (
+              ([id, item], i) => (
                 <CalciteAction
                   key={id}
-                  icon={getWidgetNameFromIconPath(
-                    appConfig.widgets[item.widgetId].icon as string
-                  )}
-                  text={appConfig.widgets[item.widgetId].label}
+                  {...(props.config.actions[i]
+                    ? props.config.actions[i]
+                    : defaultAction)}
                   onClick={() => setSelectedItemId(id)}
                 />
               )
@@ -112,16 +78,20 @@ export default function Layout(props: LayoutProps) {
           </CalciteActionBar>
           {selectedItem && (
             <CalcitePanel
+              {...props.config.panel}
               heading={appConfig.widgets[selectedItem.widgetId].label}
-              closable
-              collapsible
               onCalcitePanelClose={() => setSelectedItemId(null)}
+              data-layoutitemid={selectedItemId}
+              data-layoutid={layoutFromRedux.layout.id}
             >
               {/* Replace this with your actual widget rendering logic */}
               <WidgetRenderer
-                className={"builder-layout-item d-flex w-100 h-100"}
+                className={
+                  "builder-layout-item d-flex w-100 h-100 overflow-auto"
+                }
                 layoutId={layoutFromRedux.layout.id}
                 layoutItemId={selectedItemId}
+                {...widgetProps}
               />
             </CalcitePanel>
           )}
