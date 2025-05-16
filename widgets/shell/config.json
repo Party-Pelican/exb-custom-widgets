@@ -8,6 +8,7 @@
     "overlayPositioning": "absolute"
   },
   "shellPanel": {
+    "slot": "panel-start",
     "collapsed": false,
     "displayMode": "dock",
     "layout": "vertical",

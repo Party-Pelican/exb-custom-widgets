@@ -22,14 +22,17 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
     );
   }
 
-  const layoutName = Object.keys(props.layouts)[0];
+  const [panelLayoutName, mainLayoutName] = Object.keys(props.layouts);
 
-  console.log("layoutName", props.layouts[layoutName]);
+  const panelLayout = props.layouts[panelLayoutName];
+  const mainLayout = props.layouts[mainLayoutName];
 
   return (
     <div className="w-100 h-100">
       <LayoutComponent
-        layouts={props.layouts[layoutName]}
+        layouts={panelLayout}
+        mainLayout={mainLayout}
+        panelLayout={panelLayout}
         config={props.config}
       ></LayoutComponent>
     </div>

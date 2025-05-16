@@ -68,7 +68,7 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
 
   return (
     <div style={{ padding: "1rem" }}>
-      <SettingSection title="Shell">
+      {/* <SettingSection title="Shell">
         <SettingRow>
           <Label>Content Behind</Label>
           <Switch
@@ -79,7 +79,7 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
             }
           />
         </SettingRow>
-      </SettingSection>
+      </SettingSection> */}
 
       <SettingSection title="Panel">
         <div className="d-flex flex-column" style={{ gap: "0.5rem" }}>
@@ -137,7 +137,7 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
 
       <SettingSection title="Shell Panel">
         <div className="d-flex flex-column" style={{ gap: "0.5rem" }}>
-          <SettingRow>
+          {/* <SettingRow>
             <Label>Collapsed</Label>
             <Switch
               className="ml-2"
@@ -146,7 +146,20 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
                 updateConfig(["shellPanel", "collapsed"], e.target.checked)
               }
             />
-          </SettingRow>
+          </SettingRow> */}
+
+          <Label>Panel Slot</Label>
+          <Select
+            value={props.config.shellPanel.slot}
+            onChange={(e) =>
+              updateConfig(["shellPanel", "slot"], e.target.value)
+            }
+          >
+            <Option value="panel-start">panel-start</Option>
+            <Option value="panel-end">panel-end</Option>
+            <Option value="panel-top">panel-top</Option>
+            <Option value="panel-bottom">panel-bottom</Option>
+          </Select>
 
           <Label>Display Mode</Label>
           <Select
@@ -220,7 +233,7 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
             />
           </SettingRow>
 
-          <Label>Layout</Label>
+          {/* <Label>Layout</Label>
           <Select
             value={props.config.actionBar.layout}
             onChange={(e) =>
@@ -229,7 +242,7 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
           >
             <Option value="vertical">Vertical</Option>
             <Option value="horizontal">Horizontal</Option>
-          </Select>
+          </Select> */}
 
           <Label>Position</Label>
           <Select

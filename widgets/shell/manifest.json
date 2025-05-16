@@ -3,10 +3,10 @@
   "label": "Shell",
   "type": "widget",
   "widgetType": "LAYOUT",
-  "version": "1.16.0",
-  "exbVersion": "1.16.0",
+  "version": "1.17.0",
+  "exbVersion": "1.17.0",
   "author": "Esri R&D Center Beijing",
-  "description": "This is the widget used in developer documentation",
+  "description": "This widget is used to create a shell layout for the application based on calcite components.",
   "copyright": "",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
   "properties": {
@@ -17,9 +17,14 @@
       "name": "shell-panel-layout",
       "label": "shell-panel-layout",
       "type": "FIXED"
+    },
+    {
+      "name": "shell-main-layout",
+      "label": "shell-main-layout",
+      "type": "FIXED"
     }
   ],
-  "translatedLocales": ["en", "zh-cn"],
+  "translatedLocales": ["en"],
   "defaultSize": {
     "width": 200,
     "height": 400

@@ -59,6 +59,7 @@ export interface Config {
     overlayPositioning: "absolute" | "fixed";
   };
   shellPanel: {
+    slot: "panel-start" | "panel-end" | "panel-top" | "panel-bottom";
     collapsed: boolean;
     displayMode: "dock" | "float-all" | "float-content" | "overlay";
     layout: "vertical" | "horizontal";
