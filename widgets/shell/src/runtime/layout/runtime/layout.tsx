@@ -21,7 +21,7 @@ import {
 } from "jimu-layouts/layout-runtime";
 import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { type IMConfig } from "../../../config";
+import { type IMConfig, type Action } from "../../../config";
 
 type LayoutRuntimeProps = {
   config: IMConfig;
@@ -36,90 +36,103 @@ const defaultAction = {
   text: "widget",
   textEnabled: true,
   alignment: "start",
-} as any;
+} as Action;
 
 export default function Layout(props: LayoutRuntimeProps) {
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const appStore = getAppStore();
-  const appConfig = appStore.getState().appConfig;
   console.log("runtime props", props);
-
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const panelLayout = useMemo(() => props.panelLayout, [props.panelLayout]);
   const mainLayout = useMemo(() => props.mainLayout, [props.mainLayout]);
-
-  const { panelLayoutProps, mainLayoutProps } = useSelector(
-    (state: IMState) => {
-      return {
-        panelLayoutProps: utils.mapStateToLayoutProps(state, {
-          layouts: panelLayout,
-        }),
-        mainLayoutProps: utils.mapStateToLayoutProps(state, {
-          layouts: mainLayout,
-        }),
-      };
-    }
+  const shellConfig = useMemo(() => props.config.shell, [props.config.shell]);
+  const panelConfig = useMemo(() => props.config.panel, [props.config.panel]);
+  const shellPanelConfig = useMemo(
+    () => props.config.shellPanel,
+    [props.config.shellPanel]
+  );
+  const actionBarConfig = useMemo(
+    () => props.config.actionBar,
+    [props.config.actionBar]
   );
 
-  const selectedWidgetProps = useSelector((state: IMState) => {
+  const panelLayoutProps = useMemo(
+    () =>
+      utils.mapStateToLayoutProps(getAppStore().getState(), {
+        layouts: panelLayout,
+      }),
+    [panelLayout]
+  );
+
+  const mainLayoutProps = useMemo(
+    () =>
+      utils.mapStateToLayoutProps(getAppStore().getState(), {
+        layouts: mainLayout,
+      }),
+    [mainLayout]
+  );
+
+  const selectedWidgetProps = useMemo(() => {
     if (!selectedItemId || !panelLayoutProps?.layout?.id) return null;
 
-    const layout = state.appConfig.layouts[panelLayoutProps.layout.id];
-    const layoutItem = layout?.content?.[selectedItemId];
+    return utils.mapStateToWidgetProps(getAppStore().getState(), {
+      layoutId: panelLayoutProps.layout.id,
+      layoutItemId: selectedItemId,
+    });
+  }, [selectedItemId, panelLayoutProps?.layout?.id]);
 
-    if (layoutItem?.type === LayoutItemType.Widget) {
-      return utils.mapStateToWidgetProps(state, {
-        layoutId: panelLayoutProps.layout.id,
-        layoutItemId: selectedItemId,
-      });
-    }
-
-    return null;
-  }, ReactRedux.shallowEqual);
-
-  const mainWidgetProps = useSelector((state: IMState) => {
+  const mainWidgetProps = useMemo(() => {
     if (!mainLayoutProps?.layout?.id) return null;
 
-    const layout = state.appConfig.layouts[mainLayoutProps.layout.id];
+    const layout =
+      getAppStore().getState().appConfig.layouts[mainLayoutProps.layout.id];
     const layoutItem = layout?.content && Object.values(layout.content)[0];
 
     if (layoutItem?.type === LayoutItemType.Widget) {
-      return utils.mapStateToWidgetProps(state, {
+      return utils.mapStateToWidgetProps(getAppStore().getState(), {
         layoutId: mainLayoutProps.layout.id,
         layoutItemId: layoutItem.id,
       });
     }
 
     return null;
-  });
+  }, [mainLayoutProps?.layout?.id]);
 
   const selectedItem =
     selectedItemId && panelLayoutProps?.layout?.content?.[selectedItemId];
 
   const mainItem = mainLayoutProps ? mainLayoutProps.layout.content[0] : null;
 
-  const actionButtons = Object.entries(panelLayoutProps.layout.content).map(
-    ([id, item], i) => (
-      <CalciteAction
-        key={id}
-        {...(props.config.actions[i] || defaultAction)}
-        onClick={() => setSelectedItemId(id)}
-      />
-    )
-  );
+  const actionButtons = useMemo(() => {
+    return Object.entries(panelLayoutProps.layout.content).map(
+      ([id, item], i) => (
+        <CalciteAction
+          key={id}
+          {...(props.config.actions[i] || defaultAction)}
+          onClick={() => setSelectedItemId(id)}
+        />
+      )
+    );
+  }, [panelLayoutProps.layout.content, props.config.actions]);
+
+  const selectedWidgetLabel = useSelector((state: IMState) => {
+    if (!selectedItem) return "";
+    const widgetId = selectedItem.widgetId;
+    return state.appConfig.widgets?.[widgetId]?.label || "";
+  });
+
   return (
     <>
-      <CalciteShell {...props.config.shell}>
+      <CalciteShell {...shellConfig}>
         <CalciteShellPanel
-          {...props.config.shellPanel}
+          {...shellPanelConfig}
           collapsed={selectedItemId === null}
         >
-          <CalciteActionBar slot="action-bar" {...props.config.actionBar}>
+          <CalciteActionBar slot="action-bar" {...actionBarConfig}>
             {actionButtons}
           </CalciteActionBar>
           {selectedItem && (
             <CalcitePanel
-              {...props.config.panel}
-              heading={appConfig.widgets[selectedItem.widgetId].label}
+              {...panelConfig}
+              heading={selectedWidgetLabel}
               onCalcitePanelClose={() => setSelectedItemId(null)}
               data-layoutitemid={selectedItemId}
               data-layoutid={panelLayoutProps.layout.id}

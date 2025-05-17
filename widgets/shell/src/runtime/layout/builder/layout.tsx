@@ -2,7 +2,6 @@ import {
   IMState,
   type LayoutItemConstructorProps,
   React,
-  getAppStore,
   appActions,
   LayoutItemType,
   ReactRedux,
@@ -18,10 +17,10 @@ import {
   CalciteShellPanel,
 } from "calcite-components";
 import { addItemToLayout, DropArea } from "jimu-layouts/layout-builder";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { utils } from "jimu-layouts/layout-runtime";
 import { WidgetRendererInBuilder } from "jimu-layouts/layout-builder";
-import { type IMConfig } from "../../../config";
+import { type IMConfig, type Action } from "../../../config";
 
 type LayoutBuilderProps = {
   config: IMConfig;
@@ -36,30 +35,30 @@ const defaultAction = {
   text: "widget",
   textEnabled: true,
   alignment: "start",
-} as any;
+} as Action;
 
 export default function Layout(props: LayoutBuilderProps) {
+  console.log("builder props", props);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const anchorEl = useRef<HTMLCalciteActionElement>(null);
-  const appStore = getAppStore();
-  const appConfig = appStore.getState().appConfig;
-  console.log("builder props", props);
+  const appConfig = useSelector((state: IMState) => state.appConfig);
 
-  const panelLayout = useMemo(() => props.panelLayout, [props.panelLayout]);
-  const mainLayout = useMemo(() => props.mainLayout, [props.mainLayout]);
+  const panelLayout = props.panelLayout;
+  const mainLayout = props.mainLayout;
 
-  const { panelLayoutProps, mainLayoutProps } = useSelector(
-    (state: IMState) => {
-      return {
-        panelLayoutProps: utils.mapStateToLayoutProps(state, {
-          layouts: panelLayout,
-        }),
-        mainLayoutProps: utils.mapStateToLayoutProps(state, {
-          layouts: mainLayout,
-        }),
-      };
-    }
+  const dispatch = useDispatch();
+
+  const panelLayoutProps = useSelector(
+    (state: IMState) =>
+      utils.mapStateToLayoutProps(state, { layouts: panelLayout }),
+    ReactRedux.shallowEqual
+  );
+
+  const mainLayoutProps = useSelector(
+    (state: IMState) =>
+      utils.mapStateToLayoutProps(state, { layouts: mainLayout }),
+    ReactRedux.shallowEqual
   );
 
   const selectedWidgetProps = useSelector((state: IMState) => {
@@ -97,7 +96,7 @@ export default function Layout(props: LayoutBuilderProps) {
   function handleOnSelect(item: LayoutItemConstructorProps) {
     addItemToLayout(appConfig, item, panelLayoutProps.layout.id)
       .then((result) => {
-        appStore.dispatch(appActions.appConfigChanged(result.updatedAppConfig));
+        dispatch(appActions.appConfigChanged(result.updatedAppConfig));
         setIsOpen(false);
       })
       .catch((err) => {
@@ -108,7 +107,7 @@ export default function Layout(props: LayoutBuilderProps) {
   function handleOnDrop(item: LayoutItemConstructorProps) {
     addItemToLayout(appConfig, item, mainLayoutProps.layout.id)
       .then((result) => {
-        appStore.dispatch(appActions.appConfigChanged(result.updatedAppConfig));
+        dispatch(appActions.appConfigChanged(result.updatedAppConfig));
         setIsOpen(false);
       })
       .catch((err) => {
@@ -122,9 +121,7 @@ export default function Layout(props: LayoutBuilderProps) {
 
   function openSettings(layoutId: string, itemId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    appStore.dispatch(
-      appActions.selectionChanged({ layoutId, layoutItemId: itemId })
-    );
+    dispatch(appActions.selectionChanged({ layoutId, layoutItemId: itemId }));
   }
 
   const selectedItem =
@@ -132,15 +129,17 @@ export default function Layout(props: LayoutBuilderProps) {
 
   const mainItem = mainLayoutProps ? mainLayoutProps.layout.content[0] : null;
 
-  const actionButtons = Object.entries(panelLayoutProps.layout.content).map(
-    ([id, item], i) => (
-      <CalciteAction
-        key={id}
-        {...(props.config.actions[i] || defaultAction)}
-        onClick={() => setSelectedItemId(id)}
-      />
-    )
-  );
+  const actionButtons = useMemo(() => {
+    return Object.entries(panelLayoutProps.layout.content).map(
+      ([id, item], i) => (
+        <CalciteAction
+          key={id}
+          {...(props.config.actions[i] || defaultAction)}
+          onClick={() => setSelectedItemId(id)}
+        />
+      )
+    );
+  }, [panelLayoutProps.layout.content, props.config.actions]);
 
   return (
     <>

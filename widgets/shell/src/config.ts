@@ -19,7 +19,7 @@
 */
 import { type ImmutableObject } from "jimu-core";
 
-type action = {
+export type Action = {
   appearance: "solid" | "transparent";
   icon: string;
   label: string | null;
@@ -72,7 +72,7 @@ export interface Config {
     layout: "vertical" | "horizontal";
     position: "start" | "end";
   };
-  actions: action[];
+  actions: Action[];
 }
 
 export type IMConfig = ImmutableObject<Config>;
