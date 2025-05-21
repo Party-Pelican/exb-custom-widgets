@@ -6,9 +6,10 @@ import {
   LayoutItemType,
   ReactRedux,
   IMSizeModeLayoutJson,
+  getAppStore,
 } from "jimu-core";
 import { WidgetListPopper } from "jimu-ui/advanced/setting-components";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalciteAction,
   CalciteActionBar,
@@ -26,6 +27,8 @@ type LayoutBuilderProps = {
   config: IMConfig;
   mainLayout: IMSizeModeLayoutJson;
   panelLayout: IMSizeModeLayoutJson;
+  widgetId: string;
+  selectedItemId: string;
 };
 
 const defaultAction = {
@@ -40,9 +43,13 @@ const defaultAction = {
 export default function Layout(props: LayoutBuilderProps) {
   console.log("builder props", props);
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const anchorEl = useRef<HTMLCalciteActionElement>(null);
   const appConfig = useSelector((state: IMState) => state.appConfig);
+  const selectedItemId = useSelector((state: IMState) => {
+    return state.widgetsState[props.widgetId]
+      ? state.widgetsState[props.widgetId].selectedItemId
+      : `${props.config.selectedItemId}`;
+  });
 
   const panelLayout = props.panelLayout;
   const mainLayout = props.mainLayout;
@@ -93,6 +100,34 @@ export default function Layout(props: LayoutBuilderProps) {
     return null;
   });
 
+  const selectedItem =
+    selectedItemId && panelLayoutProps?.layout?.content?.[selectedItemId];
+
+  console.log(selectedItemId);
+
+  const mainItem = mainLayoutProps?.layout?.content?.[0] ?? null;
+
+  const actionButtons = useMemo(() => {
+    if (!panelLayoutProps?.layout?.content) return null;
+    return Object.entries(panelLayoutProps.layout.content).map(
+      ([id, item], i) => (
+        <CalciteAction
+          key={id}
+          {...(props.config.actions[i] || defaultAction)}
+          onClick={() =>
+            dispatch(
+              appActions.widgetStatePropChange(
+                props.widgetId,
+                "selectedItemId",
+                id
+              )
+            )
+          }
+        />
+      )
+    );
+  }, [panelLayoutProps.layout.content, props.config.actions]);
+
   function handleOnSelect(item: LayoutItemConstructorProps) {
     addItemToLayout(appConfig, item, panelLayoutProps.layout.id)
       .then((result) => {
@@ -124,22 +159,19 @@ export default function Layout(props: LayoutBuilderProps) {
     dispatch(appActions.selectionChanged({ layoutId, layoutItemId: itemId }));
   }
 
-  const selectedItem =
-    selectedItemId && panelLayoutProps?.layout?.content?.[selectedItemId];
-
-  const mainItem = mainLayoutProps ? mainLayoutProps.layout.content[0] : null;
-
-  const actionButtons = useMemo(() => {
-    return Object.entries(panelLayoutProps.layout.content).map(
-      ([id, item], i) => (
-        <CalciteAction
-          key={id}
-          {...(props.config.actions[i] || defaultAction)}
-          onClick={() => setSelectedItemId(id)}
-        />
-      )
-    );
-  }, [panelLayoutProps.layout.content, props.config.actions]);
+  useEffect(() => {
+    const current =
+      getAppStore().getState().widgetsState?.[props.widgetId]?.selectedItemId;
+    if (!current && props.config.selectedItemId) {
+      dispatch(
+        appActions.widgetStatePropChange(
+          props.widgetId,
+          "selectedItemId",
+          props.config.selectedItemId
+        )
+      );
+    }
+  }, [dispatch, props.widgetId, props.config.selectedItemId]);
 
   return (
     <>
@@ -155,7 +187,7 @@ export default function Layout(props: LayoutBuilderProps) {
         <CalciteShell {...props.config.shell}>
           <CalciteShellPanel
             {...props.config.shellPanel}
-            collapsed={selectedItemId === null}
+            collapsed={selectedItemId == null}
           >
             <CalciteActionBar slot="action-bar" {...props.config.actionBar}>
               <CalciteAction
@@ -169,7 +201,15 @@ export default function Layout(props: LayoutBuilderProps) {
               <CalcitePanel
                 {...props.config.panel}
                 heading={appConfig.widgets[selectedItem.widgetId].label}
-                onCalcitePanelClose={() => setSelectedItemId(null)}
+                onCalcitePanelClose={() =>
+                  dispatch(
+                    appActions.widgetStatePropChange(
+                      props.widgetId,
+                      "selectedItemId",
+                      null
+                    )
+                  )
+                }
                 data-layoutitemid={selectedItemId}
                 data-layoutid={panelLayoutProps.layout.id}
                 onClick={(e) =>

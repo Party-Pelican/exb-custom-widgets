@@ -6,6 +6,7 @@ import {
   CalciteShellPanel,
 } from "calcite-components";
 import {
+  appActions,
   getAppStore,
   IMSizeModeLayoutJson,
   IMState,
@@ -19,14 +20,16 @@ import {
   LayoutProps,
   utils,
 } from "jimu-layouts/layout-runtime";
-import { useMemo, useState } from "react";
-import { useSelector } from "react-redux";
+import { useEffect, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { type IMConfig, type Action } from "../../../config";
 
 type LayoutRuntimeProps = {
   config: IMConfig;
   mainLayout: IMSizeModeLayoutJson;
   panelLayout: IMSizeModeLayoutJson;
+  widgetId: string;
+  selectedItemId: string;
 };
 
 const defaultAction = {
@@ -40,7 +43,13 @@ const defaultAction = {
 
 export default function Layout(props: LayoutRuntimeProps) {
   console.log("runtime props", props);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const selectedItemId = useSelector((state: IMState) => {
+    return state.widgetsState[props.widgetId]
+      ? state.widgetsState[props.widgetId].selectedItemId
+      : props.config.selectedItemId;
+  });
+
+  const dispatch = useDispatch();
   const panelLayout = useMemo(() => props.panelLayout, [props.panelLayout]);
   const mainLayout = useMemo(() => props.mainLayout, [props.mainLayout]);
   const shellConfig = useMemo(() => props.config.shell, [props.config.shell]);
@@ -107,7 +116,15 @@ export default function Layout(props: LayoutRuntimeProps) {
         <CalciteAction
           key={id}
           {...(props.config.actions[i] || defaultAction)}
-          onClick={() => setSelectedItemId(id)}
+          onClick={() =>
+            dispatch(
+              appActions.widgetStatePropChange(
+                props.widgetId,
+                "selectedItemId",
+                id
+              )
+            )
+          }
         />
       )
     );
@@ -118,6 +135,20 @@ export default function Layout(props: LayoutRuntimeProps) {
     const widgetId = selectedItem.widgetId;
     return state.appConfig.widgets?.[widgetId]?.label || "";
   });
+
+  useEffect(() => {
+    const current =
+      getAppStore().getState().widgetsState?.[props.widgetId]?.selectedItemId;
+    if (!current && props.config.selectedItemId) {
+      dispatch(
+        appActions.widgetStatePropChange(
+          props.widgetId,
+          "selectedItemId",
+          props.config.selectedItemId
+        )
+      );
+    }
+  }, [dispatch, props.widgetId, props.config.selectedItemId]);
 
   return (
     <>
@@ -133,7 +164,15 @@ export default function Layout(props: LayoutRuntimeProps) {
             <CalcitePanel
               {...panelConfig}
               heading={selectedWidgetLabel}
-              onCalcitePanelClose={() => setSelectedItemId(null)}
+              onCalcitePanelClose={() =>
+                dispatch(
+                  appActions.widgetStatePropChange(
+                    props.widgetId,
+                    "selectedItemId",
+                    null
+                  )
+                )
+              }
               data-layoutitemid={selectedItemId}
               data-layoutid={panelLayoutProps.layout.id}
             >

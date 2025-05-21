@@ -6,7 +6,7 @@ import {
 } from "jimu-core";
 import { type IMConfig } from "../config";
 import { JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, FloatingPanel } from "jimu-ui";
 import AttributeForm from "../components/attributeForm/attributeForm";
 import LocationForm from "../components/locationForm/locationForm";
@@ -80,7 +80,8 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             setSelectionType(null);
           }}
           open={dialogVisible}
-          reference={floatingPanelRef.current}
+          autoPlacementOptions={true}
+          // reference={floatingPanelRef.current} this breaks the FloatingPanel
         >
           {selectionType === "attributes" ? (
             <AttributeForm

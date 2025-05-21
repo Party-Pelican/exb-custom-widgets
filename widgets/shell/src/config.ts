@@ -29,6 +29,7 @@ export type Action = {
 };
 
 export interface Config {
+  selectedItemId: string;
   shell: {
     contentBehind: boolean;
   };

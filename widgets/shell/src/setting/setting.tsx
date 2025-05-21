@@ -81,6 +81,24 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
         </SettingRow>
       </SettingSection> */}
 
+      {props.config.actions && props.config.actions.length > 0 && (
+        <SettingSection>
+          <Label>
+            Panel to open by default, if none should be open by default, leave
+            empty.
+          </Label>
+          <Select
+            value={props.config.selectedItemId}
+            onChange={(e) => updateConfig(["selectedItemId"], e.target.value)}
+          >
+            <Option value={null}>Null</Option>
+            {props.config.actions.map((action, i) => {
+              return <Option value={String(i)}>{action.text}</Option>;
+            })}
+          </Select>
+        </SettingSection>
+      )}
+
       <SettingSection title="Panel">
         <div className="d-flex flex-column" style={{ gap: "0.5rem" }}>
           <SettingRow>
@@ -137,7 +155,7 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
 
       <SettingSection title="Shell Panel">
         <div className="d-flex flex-column" style={{ gap: "0.5rem" }}>
-          {/* <SettingRow>
+          <SettingRow>
             <Label>Collapsed</Label>
             <Switch
               className="ml-2"
@@ -146,7 +164,7 @@ export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
                 updateConfig(["shellPanel", "collapsed"], e.target.checked)
               }
             />
-          </SettingRow> */}
+          </SettingRow>
 
           <Label>Panel Slot</Label>
           <Select

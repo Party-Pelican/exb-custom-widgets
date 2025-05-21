@@ -24,6 +24,14 @@
       "type": "FIXED"
     }
   ],
+  "messageActions": [
+    {
+      "name": "open",
+      "label": "open panel",
+      "uri": "actions/open-panel-action",
+      "settingUri": "actions/open-panel-action-setting"
+    }
+  ],
   "translatedLocales": ["en"],
   "defaultSize": {
     "width": 200,
