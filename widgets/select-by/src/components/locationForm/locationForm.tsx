@@ -4,10 +4,11 @@ import {
   FeatureLayerDataSource,
   React,
 } from "jimu-core";
-import { useRef, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Select, Option, Button, Progress } from "jimu-ui";
 
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
+import * as geometryJsonUtils from "@arcgis/core/geometry/support/jsonUtils.js";
 
 import { SpatialRelationship } from "@esri/arcgis-rest-feature-service";
 
@@ -27,9 +28,6 @@ const spatialRelationships = [
   { value: "esriSpatialRelTouches", label: "Touches" },
   { value: "esriSpatialRelWithin", label: "Within" },
 ];
-
-import Graphic from "esri/Graphic";
-
 export default function LocationForm({
   featureLayerDataSources,
   widgetId,
@@ -37,11 +35,17 @@ export default function LocationForm({
 }: LocationFormProps) {
   const [inputLayer, setInputLayer] = useState("");
   const [selectingFeatures, setSelectingFeatures] = useState("");
-  const [selectionType, setSelectionType] = useState("new");
+  const [selectionType, setSelectionType] = useState<
+    "new" | "add" | "remove" | "intersect"
+  >("new");
   const [selectionProgress, setSelectionProgress] = useState<number | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [resultMessage, setResultMessage] = useState<string>("");
+  const [resultStatus, setResultStatus] = useState<
+    "none" | "success" | "warning" | "error"
+  >("none");
 
   const [selectedDataSource, setSelectedDataSource] =
     useState<FeatureLayerDataSource>(null);
@@ -54,18 +58,54 @@ export default function LocationForm({
 
   function handleInputLayerChange(_, inputLayerId) {
     setInputLayer(inputLayerId);
+    setResultMessage("");
+    setResultStatus("none");
     const selectedDataSource = DataSourceManager.getInstance().getDataSource(
-      inputLayerId
+      inputLayerId,
     ) as FeatureLayerDataSource;
     setSelectedDataSource(selectedDataSource);
   }
 
   function handleRelationshipChange(_, relationship) {
     setRelationship(relationship);
+    setResultMessage("");
+    setResultStatus("none");
+  }
+
+  function getErrorMessage(err: unknown): string {
+    if (err instanceof Error && err.message) {
+      return `Selection failed: ${err.message}`;
+    }
+
+    return "Selection failed. Please try again.";
+  }
+
+  function applySelectionMode(
+    dataSource: FeatureLayerDataSource,
+    queriedIds: string[],
+    mode: "new" | "add" | "remove" | "intersect",
+  ): number {
+    const currentSelectedIds = dataSource.getSelectedRecordIds() ?? [];
+    let nextSelectedIds: string[] = queriedIds;
+
+    if (mode === "add") {
+      nextSelectedIds = Array.from(
+        new Set([...currentSelectedIds, ...queriedIds]),
+      );
+    } else if (mode === "remove") {
+      const queriedSet = new Set(queriedIds);
+      nextSelectedIds = currentSelectedIds.filter((id) => !queriedSet.has(id));
+    } else if (mode === "intersect") {
+      const queriedSet = new Set(queriedIds);
+      nextSelectedIds = currentSelectedIds.filter((id) => queriedSet.has(id));
+    }
+
+    dataSource.selectRecordsByIds(nextSelectedIds);
+    return nextSelectedIds.length;
   }
 
   async function executeSelection() {
-    if (!selectedDataSource) return;
+    if (!selectedDataSource || !selectingDataSource || !relationship) return;
 
     try {
       // Cancel previous query if it's still running
@@ -77,6 +117,8 @@ export default function LocationForm({
         secondControllerRef.current.abort();
       }
       setIsLoading(true);
+      setResultMessage("");
+      setResultStatus("none");
 
       mainControllerRef.current = new AbortController();
       secondControllerRef.current = new AbortController();
@@ -84,49 +126,89 @@ export default function LocationForm({
         selectingDataSource.getSelectedRecords() as FeatureDataRecord[];
 
       if (selectedFeatures.length === 0) {
-        console.log("No records selected, loading all records.");
+        const loadQuery = {
+          page: 1,
+          pageSize: 2000,
+          returnGeometry: true,
+        } as any;
+
         selectedFeatures = (await selectingDataSource.loadAll(
-          {
-            page: 1,
-            pageSize: 2000,
-            // @ts-ignore
-            returnGeometry: true,
-          },
+          loadQuery,
           secondControllerRef.current.signal,
           (progress) => setSelectionProgress(progress),
-          { widgetId: widgetId }
+          { widgetId: widgetId },
         )) as FeatureDataRecord[];
       }
 
-      const geometry = selectedFeatures.map(
-        (record) => record.feature.geometry
-      );
+      const geometry = selectedFeatures
+        .map((record) => record.feature?.geometry)
+        .filter((g) => !!g)
+        .map((g) => geometryJsonUtils.fromJSON(g as any))
+        .filter((g) => !!g);
 
-      // @ts-ignore
+      if (geometry.length === 0) {
+        setIsLoading(false);
+        setSelectionProgress(null);
+        return;
+      }
+
       const unionedGeometry = unionOperator.executeMany(geometry);
 
-      const selectingRecord = selectingDataSource.buildRecord(
-        new Graphic({
-          attributes: {},
-          geometry: unionedGeometry,
-        })
-      );
+      if (!unionedGeometry) {
+        setIsLoading(false);
+        setSelectionProgress(null);
+        return;
+      }
 
-      await selectedDataSource.selectRecords(
-        {
-          queryParams: {
-            spatialRel: relationship,
-            geometry: selectingRecord.getGeometry(),
+      const queryParams = {
+        spatialRel: relationship,
+        geometry: unionedGeometry,
+      };
+
+      if (selectionType === "new") {
+        const queryResult = await selectedDataSource.selectRecords(
+          {
+            queryParams,
+            widgetId: widgetId,
           },
-          widgetId: widgetId,
-        },
-        mainControllerRef.current.signal,
-        (progress) => setSelectionProgress(progress)
-      );
+          mainControllerRef.current.signal,
+          (progress) => setSelectionProgress(progress),
+        );
+        const matchedCount =
+          queryResult?.ids?.length ??
+          queryResult?.records?.length ??
+          queryResult?.count ??
+          0;
+        const selectedCount = selectedDataSource.getSelectedRecordIds().length;
+        setResultMessage(
+          matchedCount === 0
+            ? "0 matching records"
+            : `Matched ${matchedCount} records. Selected ${selectedCount}.`,
+        );
+        setResultStatus(matchedCount === 0 ? "warning" : "success");
+      } else {
+        const queryResult = await selectedDataSource.queryIds(queryParams, {
+          widgetId,
+        });
+        const matchedCount = queryResult.ids?.length ?? 0;
+        const selectedCount = applySelectionMode(
+          selectedDataSource,
+          queryResult.ids ?? [],
+          selectionType,
+        );
+        setResultMessage(
+          matchedCount === 0
+            ? "0 matching records"
+            : `Matched ${matchedCount} records. Selected ${selectedCount}.`,
+        );
+        setResultStatus(matchedCount === 0 ? "warning" : "success");
+      }
     } catch (err) {
-      if (err.name === "AbortError") {
+      if (err instanceof Error && err.name === "AbortError") {
         console.log("Previous query aborted.");
       } else {
+        setResultMessage(getErrorMessage(err));
+        setResultStatus("error");
         console.error(err);
       }
     } finally {
@@ -137,11 +219,26 @@ export default function LocationForm({
 
   function handleSelectingFeaturesChange(_, selectingFeaturesId) {
     setSelectingFeatures(selectingFeaturesId);
+    setResultMessage("");
+    setResultStatus("none");
     const selectingDataSource = DataSourceManager.getInstance().getDataSource(
-      selectingFeaturesId
+      selectingFeaturesId,
     ) as FeatureLayerDataSource;
     setSelectingDataSource(selectingDataSource);
   }
+
+  useEffect(() => {
+    return () => {
+      mainControllerRef.current?.abort();
+      secondControllerRef.current?.abort();
+    };
+  }, []);
+
+  const canSubmit =
+    !!selectedDataSource &&
+    !!selectingDataSource &&
+    !!relationship &&
+    !isLoading;
 
   return (
     <div
@@ -203,17 +300,19 @@ export default function LocationForm({
 
       <Select
         value={selectionType}
-        onChange={(e) => setSelectionType(e.target.value)}
+        onChange={(e) => {
+          setSelectionType(
+            e.target.value as "new" | "add" | "remove" | "intersect",
+          );
+          setResultMessage("");
+          setResultStatus("none");
+        }}
         placeholder="Selection Type"
       >
         <Option value="new">New selection</Option>
-
-        {
-          // I dont know how to implement these options yet
-          /* <Option value="add">Add to selection</Option>
+        <Option value="add">Add to selection</Option>
         <Option value="remove">Remove from selection</Option>
-        <Option value="intersect">Select from current selection</Option> */
-        }
+        <Option value="intersect">Select from current selection</Option>
       </Select>
 
       {
@@ -234,15 +333,20 @@ export default function LocationForm({
           onClick={() => {
             setIsLoading(false);
             setSelectionProgress(null);
+            setResultMessage("");
+            setResultStatus("none");
             mainControllerRef.current?.abort();
             secondControllerRef.current?.abort();
           }}
         >
           Cancel
         </Button>
-        <Button onClick={executeSelection}>Apply</Button>
+        <Button disabled={!canSubmit} onClick={executeSelection}>
+          Apply
+        </Button>
         <Button
           type="primary"
+          disabled={!canSubmit}
           onClick={() => {
             executeSelection();
             toggleDialog();
@@ -258,6 +362,21 @@ export default function LocationForm({
             type="linear"
             value={Math.round((selectionProgress ?? 0) * 100)}
           />
+        )}
+        {resultMessage && !isLoading && (
+          <div
+            className={
+              resultStatus === "warning"
+                ? "text-warning"
+                : resultStatus === "success"
+                  ? "text-success"
+                  : resultStatus === "error"
+                    ? "text-danger"
+                    : "text-muted"
+            }
+          >
+            {resultMessage}
+          </div>
         )}
       </div>
     </div>

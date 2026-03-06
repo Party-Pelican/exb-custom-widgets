@@ -6,31 +6,40 @@ import FieldsIndex from "@arcgis/core/layers/support/FieldsIndex.js";
 type SQLFormProps = {
   fieldsIndex: FieldsIndex;
   updateSQL: (v) => void;
+  onValidityChange: (isValid: boolean) => void;
 };
 
-export default function SQLForm({ fieldsIndex, updateSQL }: SQLFormProps) {
+export default function SQLForm({
+  fieldsIndex,
+  updateSQL,
+  onValidityChange,
+}: SQLFormProps) {
   async function checkWhereClause(
     sql: string,
-    fieldsIndex: FieldsIndex
+    fieldsIndex: FieldsIndex,
   ): Promise<ValidityResult> {
     try {
       const parsedSQL = await parseWhereClause(sql, fieldsIndex);
       if (parsedSQL.isStandardized) {
+        onValidityChange(true);
         return {
           valid: true,
           msg: null,
         };
       } else {
+        onValidityChange(false);
         return {
           valid: false,
           msg: "Invalid SQL syntax",
         };
       }
     } catch (e) {
+      onValidityChange(false);
+      const message = e instanceof Error ? e.message : "Invalid SQL syntax";
       console.error("Error parsing SQL:", e);
       return {
         valid: false,
-        msg: e.message,
+        msg: message,
       };
     }
   }

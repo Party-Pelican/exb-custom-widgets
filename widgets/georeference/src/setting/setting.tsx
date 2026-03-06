@@ -7,17 +7,18 @@ import {
 } from "jimu-ui/advanced/setting-components";
 
 export default function Setting(props: AllWidgetSettingProps<IMConfig>) {
-  function onSelect(useMapWidgetIds: string[]) {
+  function onMapWidgetSelect(useMapWidgetIds: string[]) {
     props.onSettingChange({
       id: props.id,
       useMapWidgetIds,
     });
   }
+
   return (
     <SettingSection>
       <MapWidgetSelector
         useMapWidgetIds={props.useMapWidgetIds}
-        onSelect={onSelect}
+        onSelect={onMapWidgetSelect}
       />
     </SettingSection>
   );

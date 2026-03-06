@@ -41,7 +41,6 @@ const defaultAction = {
 } as Action;
 
 export default function Layout(props: LayoutBuilderProps) {
-  console.log("builder props", props);
   const [isOpen, setIsOpen] = useState(false);
   const anchorEl = useRef<HTMLCalciteActionElement>(null);
   const appConfig = useSelector((state: IMState) => state.appConfig);
@@ -102,8 +101,6 @@ export default function Layout(props: LayoutBuilderProps) {
 
   const selectedItem =
     selectedItemId && panelLayoutProps?.layout?.content?.[selectedItemId];
-
-  console.log(selectedItemId);
 
   const mainItem = mainLayoutProps?.layout?.content?.[0] ?? null;
 

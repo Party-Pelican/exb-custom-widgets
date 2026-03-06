@@ -6,7 +6,7 @@ import {
 } from "jimu-core";
 import { type IMConfig } from "../config";
 import { JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Button, FloatingPanel } from "jimu-ui";
 import AttributeForm from "../components/attributeForm/attributeForm";
 import LocationForm from "../components/locationForm/locationForm";
@@ -18,7 +18,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [featureLayerDataSources, setFeatureLayerDataSources] =
     useState<FeatureLayerDataSource[]>(null);
   const [dialogVisible, setDialogVisible] = useState(false);
-  const floatingPanelRef = useRef(null);
+  const hasFeatureLayers = (featureLayerDataSources?.length ?? 0) > 0;
 
   function onActiveViewChange(activeView: JimuMapView) {
     if (activeView) {
@@ -27,7 +27,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
         mapDataSource.childDataSourcesReady().then(() => {
           const flds = mapDataSource.getDataSourcesByType(
-            DataSourceTypes.FeatureLayer
+            DataSourceTypes.FeatureLayer,
           ) as FeatureLayerDataSource[];
 
           setFeatureLayerDataSources(flds);
@@ -37,17 +37,14 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   }
 
   return (
-    <div
-      className="w-100 h-100 d-flex flex-column flex-md-row flex-wrap overflow-auto"
-      ref={floatingPanelRef}
-    >
+    <div className="w-100 h-100 d-flex flex-column flex-md-row flex-wrap overflow-auto">
       <JimuMapViewComponent
         useMapWidgetId={props.useMapWidgetIds?.[0]}
         onActiveViewChange={onActiveViewChange}
       />
 
       <Button
-        disabled={!featureLayerDataSources}
+        disabled={!hasFeatureLayers}
         className="btn flex-fill m-1 py-1"
         onClick={() => {
           setSelectionType("attributes");
@@ -57,7 +54,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         Select by Attributes
       </Button>
       <Button
-        disabled={!featureLayerDataSources}
+        disabled={!hasFeatureLayers}
         className="btn flex-fill m-1 py-1"
         onClick={() => {
           setSelectionType("location");

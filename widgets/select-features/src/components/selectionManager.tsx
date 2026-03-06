@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { JimuMapView } from "jimu-arcgis";
 import SketchViewModel from "esri/widgets/Sketch/SketchViewModel";
 import GraphicsLayer from "esri/layers/GraphicsLayer";
@@ -14,12 +14,13 @@ export default function SelectionManager({
 }: {
   jimuMapView: JimuMapView;
   handles: __esri.Handles;
-  setSelectedFeatures: (selectedFeatures: __esri.Graphic[]) => void;
-  popupTemplates: Map<string, __esri.PopupTemplate>;
+  setSelectedFeatures: Dispatch<SetStateAction<__esri.Graphic[]>>;
+  popupTemplates: Map<string, __esri.PopupTemplate | null>;
 }) {
   const selectionMode = useSelector(
-    (state: IMState) => state.selectModeState?.mode
+    (state: IMState) => state.selectModeState?.mode,
   );
+  const selectionModeRef = useRef<string>(selectionMode ?? "click");
 
   const sketchViewModel = useRef(
     new SketchViewModel({
@@ -37,8 +38,12 @@ export default function SelectionManager({
         color: [130, 130, 130],
         width: 2,
       },
-    })
+    }),
   );
+
+  useEffect(() => {
+    selectionModeRef.current = selectionMode ?? "click";
+  }, [selectionMode]);
 
   useEffect(() => {
     sketchViewModel.current.view = jimuMapView.view;
@@ -48,8 +53,17 @@ export default function SelectionManager({
           event.graphic,
           setSelectedFeatures,
           jimuMapView,
-          popupTemplates
+          popupTemplates,
         );
+
+        if (
+          selectionModeRef.current === "polygon" ||
+          selectionModeRef.current === "polyline"
+        ) {
+          sketchViewModel.current.create(selectionModeRef.current, {
+            mode: "click",
+          });
+        }
       }
     });
 
@@ -61,7 +75,6 @@ export default function SelectionManager({
   }, [jimuMapView.view]);
 
   useEffect(() => {
-    console.log("IN SELECTION MANAGER", selectionMode);
     if (selectionMode === "click") {
       sketchViewModel.current.cancel();
       if (!handles.has("clickHandler")) {
@@ -70,7 +83,7 @@ export default function SelectionManager({
             event,
             setSelectedFeatures,
             jimuMapView,
-            popupTemplates
+            popupTemplates,
           );
         });
 
@@ -81,7 +94,13 @@ export default function SelectionManager({
     } else if (selectionMode === "polygon") {
       changeSelectionMode(sketchViewModel.current, handles, "polygon");
     }
-  }, [selectionMode]);
+  }, [
+    selectionMode,
+    handles,
+    jimuMapView,
+    popupTemplates,
+    setSelectedFeatures,
+  ]);
 
   return null;
 }

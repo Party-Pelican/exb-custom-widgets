@@ -12,14 +12,9 @@ import {
   IMState,
   LayoutItemType,
   React,
-  ReactRedux,
 } from "jimu-core";
 
-import {
-  WidgetRenderer,
-  LayoutProps,
-  utils,
-} from "jimu-layouts/layout-runtime";
+import { WidgetRenderer, utils } from "jimu-layouts/layout-runtime";
 import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { type IMConfig, type Action } from "../../../config";
@@ -42,7 +37,6 @@ const defaultAction = {
 } as Action;
 
 export default function Layout(props: LayoutRuntimeProps) {
-  console.log("runtime props", props);
   const selectedItemId = useSelector((state: IMState) => {
     return state.widgetsState[props.widgetId]
       ? state.widgetsState[props.widgetId].selectedItemId

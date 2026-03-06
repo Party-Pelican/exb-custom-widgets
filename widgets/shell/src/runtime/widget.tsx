@@ -27,8 +27,6 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
   const panelLayout = props.layouts[panelLayoutName];
   const mainLayout = props.layouts[mainLayoutName];
 
-  console.log("widgetProps", props);
-
   return (
     <div className="w-100 h-100">
       <LayoutComponent

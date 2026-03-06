@@ -3,9 +3,14 @@ import Graphic from "@arcgis/core/Graphic";
 import { JimuLayerView, JimuMapView } from "jimu-arcgis";
 import Collection from "esri/core/Collection";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
+import type { Dispatch, SetStateAction } from "react";
 
 function extractPopupTemplate(
-  layer: __esri.Layer
+  layer:
+    | __esri.Layer
+    | __esri.Sublayer
+    | __esri.SubtypeSublayer
+    | __esri.BuildingComponentSublayer,
 ): __esri.Collection<__esri.PopupTemplate> {
   switch (layer.type) {
     case "map-image":
@@ -19,6 +24,15 @@ function extractPopupTemplate(
     default:
       return new Collection<__esri.PopupTemplate>();
   }
+}
+
+function resolvePopupTemplate(feature: Graphic): __esri.PopupTemplate | null {
+  if (feature.popupTemplate) {
+    return feature.popupTemplate;
+  }
+
+  const popupTemplateCollection = extractPopupTemplate(feature.layer);
+  return popupTemplateCollection.find((template) => !!template) ?? null;
 }
 
 function checkPopupEnabled(layer: __esri.Layer): boolean {
@@ -36,9 +50,9 @@ function checkPopupEnabled(layer: __esri.Layer): boolean {
 
 async function selectByGraphic(
   event: __esri.ViewClickEvent | Graphic,
-  setSelectedFeatures: (selectedFeatures: Graphic[]) => void,
+  setSelectedFeatures: Dispatch<SetStateAction<Graphic[]>>,
   jimuMapView: JimuMapView,
-  popupTemplates: Map<string, __esri.PopupTemplate>
+  popupTemplates: Map<string, __esri.PopupTemplate | null>,
 ) {
   setSelectedFeatures([]);
   jimuMapView.clearSelectedFeatures();
@@ -50,57 +64,57 @@ async function selectByGraphic(
     graphic.geometry = event.mapPoint;
   }
 
-  const selectedFeatures = await jimuMapView.selectFeaturesByGraphic(
-    graphic,
-    "intersects",
-    DataSourceSelectionMode.New,
-    {
-      returnAllFields: true,
-      returnFullGeometry: true,
-      filterJimuLayerView: (jimuLayerView: JimuLayerView) => {
-        return (
-          jimuLayerView.view &&
-          "visible" in jimuLayerView.view &&
-          jimuLayerView.view.visible &&
-          checkPopupEnabled(jimuLayerView.view.layer)
-        );
+  try {
+    const selectedFeatures = await jimuMapView.selectFeaturesByGraphic(
+      graphic,
+      "intersects",
+      DataSourceSelectionMode.New,
+      {
+        returnAllFields: true,
+        returnFullGeometry: true,
+        filterJimuLayerView: (jimuLayerView: JimuLayerView) => {
+          return (
+            jimuLayerView.view &&
+            "visible" in jimuLayerView.view &&
+            jimuLayerView.view.visible &&
+            checkPopupEnabled(jimuLayerView.view.layer)
+          );
+        },
       },
-    }
-  );
+    );
 
-  for (const dataSourceId in selectedFeatures) {
-    if (selectedFeatures[dataSourceId].length > 0) {
-      if (!popupTemplates.has(dataSourceId)) {
-        const popupTemplate = extractPopupTemplate(
-          (selectedFeatures[dataSourceId][0] as Graphic).layer
-        );
-        console.log("popupTemplate", popupTemplate.at(0));
-        popupTemplates.set(dataSourceId, popupTemplate.at(0));
-        selectedFeatures[dataSourceId].forEach(
-          (f: Graphic) => (f.popupTemplate = popupTemplate.at(0))
-        );
-        // @ts-ignore
-        setSelectedFeatures((prevState: Graphic[]) => {
-          return [...prevState, ...selectedFeatures[dataSourceId]];
-        });
-      } else {
+    const mergedFeatures: Graphic[] = [];
+    for (const dataSourceId in selectedFeatures) {
+      const dataSourceFeatures = selectedFeatures[dataSourceId] as Graphic[];
+
+      if (dataSourceFeatures.length > 0) {
+        if (!popupTemplates.has(dataSourceId)) {
+          popupTemplates.set(
+            dataSourceId,
+            resolvePopupTemplate(dataSourceFeatures[0]),
+          );
+        }
+
         const popupTemplate = popupTemplates.get(dataSourceId);
-        console.log("popupTemplate from cache", popupTemplate);
-        selectedFeatures[dataSourceId].forEach(
-          (f: Graphic) => (f.popupTemplate = popupTemplate)
-        );
-        // @ts-ignore
-        setSelectedFeatures((prevState: Graphic[]) => {
-          return [...prevState, ...selectedFeatures[dataSourceId]];
-        });
+        if (popupTemplate) {
+          dataSourceFeatures.forEach(
+            (f: Graphic) => (f.popupTemplate = popupTemplate),
+          );
+        }
+
+        mergedFeatures.push(...dataSourceFeatures);
       }
     }
+
+    setSelectedFeatures(mergedFeatures);
+  } catch {
+    setSelectedFeatures([]);
   }
 }
 
 function bufferFromFeature(
   feature: __esri.Graphic,
-  graphicLayer: __esri.GraphicsLayer
+  graphicLayer: __esri.GraphicsLayer,
 ) {
   const buffGeom = geometryEngine.buffer(feature.geometry, 50, "feet");
   const buffgra = new Graphic({
@@ -125,15 +139,11 @@ function bufferFromFeature(
 function changeSelectionMode(
   sketchVM: __esri.SketchViewModel,
   viewHandles: __esri.Handles,
-  sketchType: "polygon" | "polyline"
+  sketchType: "polygon" | "polyline",
 ) {
   viewHandles.remove("clickHandler");
+  sketchVM.cancel();
   sketchVM.create(sketchType, { mode: "click" });
-  sketchVM.on("create", (event) => {
-    if (event.state === "complete") {
-      sketchVM.create(sketchType, { mode: "click" });
-    }
-  });
 }
 
 export { selectByGraphic, bufferFromFeature, changeSelectionMode };
