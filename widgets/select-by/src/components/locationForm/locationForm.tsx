@@ -5,7 +5,7 @@ import {
   React,
 } from "jimu-core";
 import { useEffect, useState, useRef } from "react";
-import { Select, Option, Button, Progress } from "jimu-ui";
+import { Select, Option, Button, Progress, Label, Switch } from "jimu-ui";
 
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 import * as geometryJsonUtils from "@arcgis/core/geometry/support/jsonUtils.js";
@@ -28,6 +28,7 @@ const spatialRelationships = [
   { value: "esriSpatialRelTouches", label: "Touches" },
   { value: "esriSpatialRelWithin", label: "Within" },
 ];
+
 export default function LocationForm({
   featureLayerDataSources,
   widgetId,
@@ -51,12 +52,15 @@ export default function LocationForm({
     useState<FeatureLayerDataSource>(null);
   const [selectingDataSource, setSelectingDataSource] =
     useState<FeatureLayerDataSource>(null);
+  const [useExistingSelection, setUseExistingSelection] = useState(true);
+  const [selectingLayerSelectedCount, setSelectingLayerSelectedCount] =
+    useState(0);
 
   const mainControllerRef = useRef<AbortController | null>(null);
   const secondControllerRef = useRef<AbortController | null>(null);
   const [relationship, setRelationship] = useState<SpatialRelationship>(null);
 
-  function handleInputLayerChange(_, inputLayerId) {
+  function handleInputLayerChange(_: unknown, inputLayerId: string) {
     setInputLayer(inputLayerId);
     setResultMessage("");
     setResultStatus("none");
@@ -66,7 +70,10 @@ export default function LocationForm({
     setSelectedDataSource(selectedDataSource);
   }
 
-  function handleRelationshipChange(_, relationship) {
+  function handleRelationshipChange(
+    _: unknown,
+    relationship: SpatialRelationship,
+  ) {
     setRelationship(relationship);
     setResultMessage("");
     setResultStatus("none");
@@ -122,10 +129,46 @@ export default function LocationForm({
 
       mainControllerRef.current = new AbortController();
       secondControllerRef.current = new AbortController();
-      let selectedFeatures =
-        selectingDataSource.getSelectedRecords() as FeatureDataRecord[];
+      const currentSelectedIds =
+        selectingDataSource.getSelectedRecordIds() ?? [];
+      const currentSelectedCount = currentSelectedIds.length;
+      setSelectingLayerSelectedCount(currentSelectedCount);
 
-      if (selectedFeatures.length === 0) {
+      const shouldUseSelectedFeatures = useExistingSelection;
+      let selectedFeatures: FeatureDataRecord[] = [];
+
+      if (shouldUseSelectedFeatures) {
+        const loadedSelectedRecords = await Promise.all(
+          currentSelectedIds.map(async (recordId) => {
+            try {
+              const record = await selectingDataSource.loadById(recordId);
+              return record as FeatureDataRecord;
+            } catch {
+              return null;
+            }
+          }),
+        );
+
+        selectedFeatures = loadedSelectedRecords.filter(
+          (record): record is FeatureDataRecord => !!record,
+        );
+
+        if (selectedFeatures.length === 0) {
+          selectedFeatures =
+            (selectingDataSource.getSelectedRecords() as FeatureDataRecord[]) ??
+            [];
+        }
+
+        if (selectedFeatures.length === 0) {
+          setResultMessage(
+            "No selected features available in selecting layer.",
+          );
+          setResultStatus("warning");
+          return;
+        }
+      }
+
+      if (!shouldUseSelectedFeatures && selectedFeatures.length === 0) {
         const loadQuery = {
           page: 1,
           pageSize: 2000,
@@ -147,65 +190,50 @@ export default function LocationForm({
         .filter((g) => !!g);
 
       if (geometry.length === 0) {
-        setIsLoading(false);
-        setSelectionProgress(null);
+        setResultMessage(
+          shouldUseSelectedFeatures
+            ? "No geometry found in selected records from the selecting layer."
+            : "No geometry found in selecting layer records.",
+        );
+        setResultStatus("warning");
         return;
       }
 
       const unionedGeometry = unionOperator.executeMany(geometry);
 
       if (!unionedGeometry) {
-        setIsLoading(false);
-        setSelectionProgress(null);
+        setResultMessage("Could not build a selection geometry.");
+        setResultStatus("warning");
         return;
       }
 
       const queryParams = {
         spatialRel: relationship,
-        geometry: unionedGeometry,
+        geometry: unionedGeometry?.toJSON
+          ? unionedGeometry.toJSON()
+          : (unionedGeometry as any),
       };
 
-      if (selectionType === "new") {
-        const queryResult = await selectedDataSource.selectRecords(
-          {
-            queryParams,
-            widgetId: widgetId,
-          },
-          mainControllerRef.current.signal,
-          (progress) => setSelectionProgress(progress),
-        );
-        const matchedCount =
-          queryResult?.ids?.length ??
-          queryResult?.records?.length ??
-          queryResult?.count ??
-          0;
-        const selectedCount = selectedDataSource.getSelectedRecordIds().length;
-        setResultMessage(
-          matchedCount === 0
-            ? "0 matching records"
-            : `Matched ${matchedCount} records. Selected ${selectedCount}.`,
-        );
-        setResultStatus(matchedCount === 0 ? "warning" : "success");
-      } else {
-        const queryResult = await selectedDataSource.queryIds(queryParams, {
-          widgetId,
-        });
-        const matchedCount = queryResult.ids?.length ?? 0;
-        const selectedCount = applySelectionMode(
-          selectedDataSource,
-          queryResult.ids ?? [],
-          selectionType,
-        );
-        setResultMessage(
-          matchedCount === 0
-            ? "0 matching records"
-            : `Matched ${matchedCount} records. Selected ${selectedCount}.`,
-        );
-        setResultStatus(matchedCount === 0 ? "warning" : "success");
-      }
+      const queryResult = await selectedDataSource.queryIds(queryParams, {
+        widgetId,
+      });
+      const matchedIds = queryResult.ids ?? [];
+      const selectedCount = applySelectionMode(
+        selectedDataSource,
+        matchedIds,
+        selectionType,
+      );
+      const matchedCount = matchedIds.length;
+
+      setResultMessage(
+        matchedCount === 0
+          ? "0 matching records"
+          : `Matched ${matchedCount} records. Selected ${selectedCount}.`,
+      );
+      setResultStatus(matchedCount === 0 ? "warning" : "success");
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
-        console.log("Previous query aborted.");
+        return;
       } else {
         setResultMessage(getErrorMessage(err));
         setResultStatus("error");
@@ -217,13 +245,21 @@ export default function LocationForm({
     }
   }
 
-  function handleSelectingFeaturesChange(_, selectingFeaturesId) {
+  function handleSelectingFeaturesChange(
+    _: unknown,
+    selectingFeaturesId: string,
+  ) {
     setSelectingFeatures(selectingFeaturesId);
     setResultMessage("");
     setResultStatus("none");
     const selectingDataSource = DataSourceManager.getInstance().getDataSource(
       selectingFeaturesId,
     ) as FeatureLayerDataSource;
+    const selectedCount =
+      selectingDataSource?.getSelectedRecordIds()?.length ?? 0;
+
+    setSelectingLayerSelectedCount(selectedCount);
+    setUseExistingSelection(selectedCount > 0);
     setSelectingDataSource(selectingDataSource);
   }
 
@@ -296,6 +332,23 @@ export default function LocationForm({
           ))}
       </Select>
 
+      {selectingLayerSelectedCount > 0 && (
+        <div className="d-flex justify-content-between align-items-center">
+          <Label className="mb-0">
+            Use existing selection in selecting layer (
+            {selectingLayerSelectedCount})
+          </Label>
+          <Switch
+            checked={useExistingSelection}
+            onChange={(e) => {
+              setUseExistingSelection(e.target.checked);
+              setResultMessage("");
+              setResultStatus("none");
+            }}
+          />
+        </div>
+      )}
+
       {/* Selection Type */}
 
       <Select
@@ -337,6 +390,7 @@ export default function LocationForm({
             setResultStatus("none");
             mainControllerRef.current?.abort();
             secondControllerRef.current?.abort();
+            toggleDialog();
           }}
         >
           Cancel
@@ -347,8 +401,8 @@ export default function LocationForm({
         <Button
           type="primary"
           disabled={!canSubmit}
-          onClick={() => {
-            executeSelection();
+          onClick={async () => {
+            await executeSelection();
             toggleDialog();
           }}
         >

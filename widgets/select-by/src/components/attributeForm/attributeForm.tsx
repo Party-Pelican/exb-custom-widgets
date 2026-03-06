@@ -21,13 +21,12 @@ export default function AttributeForm({
   widgetId,
   toggleDialog,
 }: AttributeFormProps) {
-  const [inputLayer, setInputLayer] = useState(null);
+  const [inputLayer, setInputLayer] = useState<string | null>(null);
   const [selectionType, setSelectionType] = useState<
     "new" | "add" | "remove" | "intersect"
   >("new");
-  const [selectedDataSource, setSelectedDataSource] = useState<
-    FeatureLayerDataSource | undefined
-  >(null);
+  const [selectedDataSource, setSelectedDataSource] =
+    useState<FeatureLayerDataSource | null>(null);
   const [selectionProgress, setSelectionProgress] = useState<number | null>(
     null,
   );
@@ -41,7 +40,7 @@ export default function AttributeForm({
   >("none");
   const currentControllerRef = useRef<AbortController | null>(null);
 
-  function handleInputLayerChange(_, inputLayerId) {
+  function handleInputLayerChange(_: unknown, inputLayerId: string) {
     setInputLayer(inputLayerId);
     setResultMessage("");
     setResultStatus("none");
@@ -64,10 +63,6 @@ export default function AttributeForm({
       setResultMessage("");
       setResultStatus("none");
     }
-  }
-
-  function cancelCurrentSelection() {
-    currentControllerRef.current?.abort();
   }
 
   function getErrorMessage(err: unknown): string {
@@ -108,7 +103,7 @@ export default function AttributeForm({
     try {
       // Cancel previous query if it's still running
       if (currentControllerRef.current) {
-        cancelCurrentSelection();
+        currentControllerRef.current.abort();
       }
       setIsLoading(true);
       setResultMessage("");
@@ -161,7 +156,7 @@ export default function AttributeForm({
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
-        console.log("Previous query aborted.");
+        return;
       } else {
         setResultMessage(getErrorMessage(err));
         setResultStatus("error");
@@ -209,12 +204,12 @@ export default function AttributeForm({
         height: "100%",
       }}
     >
-      {/* Input Rows */}
+      {/* Input Layer */}
 
       <Select
         value={inputLayer}
         onChange={handleInputLayerChange}
-        placeholder="Input Rows"
+        placeholder="Input Layer"
       >
         {featureLayerDataSources.map((flds) => (
           <Option key={flds.id} value={flds.id}>
@@ -287,6 +282,7 @@ export default function AttributeForm({
             setResultMessage("");
             setResultStatus("none");
             currentControllerRef.current?.abort();
+            toggleDialog();
           }}
         >
           Cancel
@@ -297,8 +293,8 @@ export default function AttributeForm({
         <Button
           type="primary"
           disabled={!canSubmit}
-          onClick={() => {
-            executeSelection();
+          onClick={async () => {
+            await executeSelection();
             toggleDialog();
           }}
         >
