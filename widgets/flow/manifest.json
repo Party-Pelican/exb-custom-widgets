@@ -1,0 +1,27 @@
+{
+  "name": "flow",
+  "label": "Flow",
+  "type": "widget",
+  "widgetType": "LAYOUT",
+  "version": "1.17.0",
+  "exbVersion": "1.17.0",
+  "author": "Esri R&D Center Beijing",
+  "description": "A widget that implements a calcite flow component.",
+  "copyright": "",
+  "license": "http://www.apache.org/licenses/LICENSE-2.0",
+  "properties": {
+    "supportAutoSize": false
+  },
+  "translatedLocales": ["en"],
+  "defaultSize": {
+    "width": 800,
+    "height": 500
+  },
+  "layouts": [
+    {
+      "name": "flow-layout",
+      "label": "flow-layout",
+      "type": "FIXED"
+    }
+  ]
+}
