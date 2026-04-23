@@ -15,9 +15,11 @@ import {
   addItemToLayout,
   WidgetRendererInBuilder,
 } from "jimu-layouts/layout-builder";
+import { getAppConfigAction } from "jimu-for-builder";
 import { useDispatch, useSelector } from "react-redux";
 import { utils } from "jimu-layouts/layout-runtime";
 import {
+  CalciteAction,
   CalciteBlock,
   CalciteButton,
   CalciteFlow,
@@ -73,6 +75,18 @@ export default function Layout(props: any) {
     return item.itemType === "WIDGET";
   };
 
+  const handleRemoveWidget = (layoutItemId: string) => {
+    if (activeItemId === layoutItemId) {
+      setActiveItemId(null);
+    }
+    getAppConfigAction()
+      .removeLayoutItem(
+        { layoutId: flowLayoutProps.layout.id, layoutItemId },
+        true,
+      )
+      .exec();
+  };
+
   const openSettings = (
     layoutId: string,
     itemId: string,
@@ -108,7 +122,17 @@ export default function Layout(props: any) {
             setActiveItemId(id);
             openSettings(flowLayoutProps.layout.id, id, e);
           }}
-        ></CalciteListItem>
+        >
+          <CalciteAction
+            slot="actions-end"
+            icon="trash"
+            text="Remove"
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              handleRemoveWidget(id);
+            }}
+          />
+        </CalciteListItem>
       );
     });
   }, [
@@ -116,6 +140,7 @@ export default function Layout(props: any) {
     appConfig.widgets,
     flowLayoutProps.layout.id,
     openSettings,
+    handleRemoveWidget,
   ]);
 
   console.log("Active Widget Props", activeWidgetProps);
