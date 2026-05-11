@@ -51,7 +51,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         mapDataSource.childDataSourcesReady().then(() => {
           const flds = mapDataSource.getDataSourcesByType(
             DataSourceTypes.FeatureLayer,
-          ) as FeatureLayerDataSource[];
+          ) as unknown as FeatureLayerDataSource[];
 
           setFeatureLayerDataSources(flds);
         });

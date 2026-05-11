@@ -5,8 +5,6 @@ import "calcite-components";
 import Layout from "./layout/runtime/layout";
 
 const Widget = (props: AllWidgetProps<IMConfig>) => {
-  console.log("Flow Component", props);
-
   const LayoutComponent = !window.jimuConfig.isInBuilder
     ? Layout
     : props.builderSupportModules?.widgetModules?.LayoutBuilder;

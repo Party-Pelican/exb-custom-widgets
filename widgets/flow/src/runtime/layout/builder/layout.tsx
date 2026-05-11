@@ -1,7 +1,7 @@
 import {
   React,
-  IMSizeModeLayoutJson,
   type LayoutItemConstructorProps,
+  type AllWidgetProps,
   IMState,
   ReactRedux,
   appActions,
@@ -9,7 +9,7 @@ import {
 } from "jimu-core";
 import "calcite-components";
 import { type IMConfig } from "../../../config";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { WidgetListPopper } from "jimu-ui/advanced/setting-components";
 import {
   addItemToLayout,
@@ -29,27 +29,21 @@ import {
   CalciteListItem,
 } from "calcite-components";
 
-// type LayoutBuilderProps = {
-//   config: IMConfig;
-//   mainLayout: IMSizeModeLayoutJson;
-//   panelLayout: IMSizeModeLayoutJson;
-//   widgetId: string;
-//   selectedItemId: string;
-// };
+type LayoutBuilderProps = AllWidgetProps<IMConfig>;
 
-export default function Layout(props: any) {
-  console.log("Layout Builder Props", props.layouts);
+export default function Layout(props: LayoutBuilderProps) {
   const [isWidgetListOpen, setIsWidgetListOpen] = useState(false);
 
   const appConfig = useSelector((state: IMState) => state.appConfig);
   const dispatch = useDispatch();
-  const [flowLayoutName] = Object.keys(props.layouts);
-
-  const flowLayout = props.layouts[flowLayoutName];
+  const [flowLayoutName] = Object.keys(props.layouts ?? {});
+  const flowLayout = flowLayoutName ? props.layouts[flowLayoutName] : null;
 
   const flowLayoutProps = useSelector(
     (state: IMState) =>
-      utils.mapStateToLayoutProps(state, { layouts: flowLayout }),
+      flowLayout
+        ? utils.mapStateToLayoutProps(state, { layouts: flowLayout })
+        : null,
     ReactRedux.shallowEqual,
   );
 
@@ -62,90 +56,101 @@ export default function Layout(props: any) {
 
     const layout = state.appConfig.layouts[flowLayoutProps.layout.id];
     const layoutItem = layout?.content?.[activeItemId];
-    if (layoutItem?.type === LayoutItemType.Widget) {
-      return utils.mapStateToWidgetProps(state, {
-        layoutId: flowLayoutProps.layout.id,
-        layoutItemId: activeItemId,
-      });
-    }
-    return null;
+    // Guard: item may be undefined if it was removed or not yet committed
+    if (!layoutItem || layoutItem?.type !== LayoutItemType.Widget) return null;
+    return utils.mapStateToWidgetProps(state, {
+      layoutId: flowLayoutProps.layout.id,
+      layoutItemId: activeItemId,
+    });
   }, ReactRedux.shallowEqual);
 
   const handleIsAccepted = (item: LayoutItemConstructorProps) => {
     return item.itemType === "WIDGET";
   };
 
-  const handleRemoveWidget = (layoutItemId: string) => {
-    if (activeItemId === layoutItemId) {
-      setActiveItemId(null);
-    }
-    getAppConfigAction()
-      .removeLayoutItem(
-        { layoutId: flowLayoutProps.layout.id, layoutItemId },
-        true,
-      )
-      .exec();
-  };
+  const handleRemoveWidget = useCallback(
+    (layoutItemId: string) => {
+      if (!flowLayoutProps?.layout?.id) return;
+      if (activeItemId === layoutItemId) {
+        setActiveItemId(null);
+      }
+      getAppConfigAction()
+        .removeLayoutItem(
+          { layoutId: flowLayoutProps.layout.id, layoutItemId },
+          true,
+        )
+        .exec();
+    },
+    [activeItemId, flowLayoutProps?.layout?.id],
+  );
 
-  const openSettings = (
-    layoutId: string,
-    itemId: string,
-    e: React.MouseEvent,
-  ) => {
-    e.stopPropagation();
-    dispatch(appActions.selectionChanged({ layoutId, layoutItemId: itemId }));
-  };
+  const openSettings = useCallback(
+    (layoutId: string, itemId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      dispatch(appActions.selectionChanged({ layoutId, layoutItemId: itemId }));
+    },
+    [dispatch],
+  );
 
-  const handleSelectWidget = (item: LayoutItemConstructorProps) => {
-    addItemToLayout(appConfig, item, flowLayoutProps.layout.id)
-      .then((result) => {
-        dispatch(appActions.appConfigChanged(result.updatedAppConfig));
-        setIsWidgetListOpen(false);
-      })
-      .catch((err) => {
-        console.error("addItemToLayout error", err);
-      });
-  };
+  const handleSelectWidget = useCallback(
+    (item: LayoutItemConstructorProps) => {
+      if (!flowLayoutProps?.layout?.id) return;
+      addItemToLayout(appConfig, item, flowLayoutProps.layout.id)
+        .then((result) => {
+          dispatch(appActions.appConfigChanged(result.updatedAppConfig));
+          setIsWidgetListOpen(false);
+        })
+        .catch((err) => {
+          console.error("addItemToLayout error", err);
+        });
+    },
+    [appConfig, dispatch, flowLayoutProps?.layout?.id],
+  );
 
   const listItems = useMemo(() => {
     if (!flowLayoutProps?.layout?.content) return null;
-    return Object.entries(flowLayoutProps.layout.content).map(([id, item]) => {
-      const label = item.widgetId
-        ? (appConfig.widgets?.[item.widgetId]?.label ?? item.widgetId)
-        : id;
-      console.log("List Item", { id, item, label });
-      return (
-        <CalciteListItem
-          key={id}
-          label={label}
-          onClick={(e: React.MouseEvent) => {
-            setActiveItemId(id);
-            openSettings(flowLayoutProps.layout.id, id, e);
-          }}
-        >
-          <CalciteAction
-            slot="actions-end"
-            icon="trash"
-            text="Remove"
+    return Object.entries(flowLayoutProps.layout.content)
+      .filter(([, item]) => item != null)
+      .map(([id, item]) => {
+        const label = item.widgetId
+          ? (appConfig.widgets?.[item.widgetId]?.label ?? item.widgetId)
+          : id;
+        return (
+          <CalciteListItem
+            key={id}
+            label={label}
             onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              handleRemoveWidget(id);
+              setActiveItemId(id);
+              openSettings(flowLayoutProps.layout.id, id, e);
             }}
-          />
-        </CalciteListItem>
-      );
-    });
+          >
+            <CalciteAction
+              slot="actions-end"
+              icon="trash"
+              text="Remove"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                handleRemoveWidget(id);
+              }}
+            />
+          </CalciteListItem>
+        );
+      });
   }, [
-    flowLayoutProps.layout.content,
+    flowLayoutProps?.layout?.content,
     appConfig.widgets,
-    flowLayoutProps.layout.id,
+    flowLayoutProps?.layout?.id,
     openSettings,
     handleRemoveWidget,
   ]);
 
-  console.log("Active Widget Props", activeWidgetProps);
-  console.log("Flow Layout Props", flowLayoutProps);
-  console.log("Active Item ID", activeItemId);
+  if (!flowLayoutProps?.layout?.id) {
+    return (
+      <div className="w-100 h-100 d-flex align-items-center justify-content-center">
+        No flow layout configured.
+      </div>
+    );
+  }
 
   return (
     <>
@@ -180,6 +185,8 @@ export default function Layout(props: any) {
                 width="full"
                 slot="content-start"
                 ref={addWidgetButtonRef}
+                aria-label="Add widget"
+                title="Add widget"
                 onClick={() => setIsWidgetListOpen((prev) => !prev)}
               >
                 <CalciteIcon icon="plus"></CalciteIcon>

@@ -1,7 +1,8 @@
-import { IMState, React, ReactRedux } from "jimu-core";
+import { IMState, React, ReactRedux, type AllWidgetProps } from "jimu-core";
 import { WidgetRenderer, utils } from "jimu-layouts/layout-runtime";
 import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
+import { type IMConfig } from "../../../config";
 import {
   CalciteBlock,
   CalciteFlow,
@@ -10,15 +11,19 @@ import {
   CalciteListItem,
 } from "calcite-components";
 
-export default function Layout(props: any) {
+type LayoutRuntimeProps = AllWidgetProps<IMConfig>;
+
+export default function Layout(props: LayoutRuntimeProps) {
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
 
-  const [flowLayoutName] = Object.keys(props.layouts);
-  const flowLayout = props.layouts[flowLayoutName];
+  const [flowLayoutName] = Object.keys(props.layouts ?? {});
+  const flowLayout = flowLayoutName ? props.layouts[flowLayoutName] : null;
 
   const flowLayoutProps = useSelector(
     (state: IMState) =>
-      utils.mapStateToLayoutProps(state, { layouts: flowLayout }),
+      flowLayout
+        ? utils.mapStateToLayoutProps(state, { layouts: flowLayout })
+        : null,
     ReactRedux.shallowEqual,
   );
 
@@ -59,6 +64,14 @@ export default function Layout(props: any) {
     const widgetId = flowLayoutProps.layout.content[activeItemId].widgetId;
     return widgetId ? (appConfig.widgets?.[widgetId]?.label ?? "") : "";
   }, [activeItemId, flowLayoutProps?.layout?.content, appConfig.widgets]);
+
+  if (!flowLayoutProps?.layout?.id) {
+    return (
+      <div className="w-100 h-100 d-flex align-items-center justify-content-center">
+        No flow layout configured.
+      </div>
+    );
+  }
 
   return (
     <CalciteFlow style={{ width: "100%", height: "100%" }}>
