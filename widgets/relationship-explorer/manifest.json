@@ -1,0 +1,19 @@
+{
+  "name": "relationship-explorer",
+  "label": "Relationship Explorer",
+  "type": "widget",
+  "version": "1.0.0",
+  "exbVersion": "1.17.0",
+  "author": "",
+  "description": "Explore relationships between features.",
+  "copyright": "",
+  "license": "",
+  "properties": {
+    "useMapWidgets": true
+  },
+  "translatedLocales": ["en"],
+  "defaultSize": {
+    "width": 800,
+    "height": 500
+  }
+}
