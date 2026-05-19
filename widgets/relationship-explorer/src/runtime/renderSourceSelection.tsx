@@ -29,12 +29,12 @@ export default function RenderSourceSelection({
   const featuresRef = useRef<HTMLArcgisFeaturesElement>(null);
 
   useEffect(() => {
-    if (!featuresRef.current || !jimuMapView?.view) return;
+    if (!featuresRef.current || !jimuMapView?.view || !jimuMapView?.view?.map)
+      return;
     if (selectedDataRecords.length === 0) {
       featuresRef.current.clear();
       return;
     }
-    console.log(featuresRef.current.map);
     featuresRef.current.open({
       features: selectedDataRecords.map(
         (r) =>
@@ -60,9 +60,16 @@ export default function RenderSourceSelection({
         }}
         onSelectionChange={handleSelectionChange}
       />
-      {jimuMapView?.view && jimuMapView.view.map && (
+      {jimuMapView?.view && jimuMapView.view?.map && (
         <ArcgisFeatures
           hideCloseButton
+          initialDisplayMode="list"
+          goToOverride={(view, goToParams) => {
+            console.log("goToOverride called with:");
+            console.log(view);
+            console.log(goToParams);
+          }}
+          includeDefaultActions={false}
           map={jimuMapView.view.map}
           ref={featuresRef}
         />

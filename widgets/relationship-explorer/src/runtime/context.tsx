@@ -24,6 +24,10 @@ export interface WidgetContextValue {
   setResult: (index: number, result: RelationshipResult) => void;
   clearResults: () => void;
 
+  /** Selected records within each relationship's result set, keyed by relationship index */
+  relatedSelections: Record<number, DataRecord[]>;
+  setRelatedSelection: (index: number, records: DataRecord[]) => void;
+
   /** Which relationship panel is currently expanded, null = all collapsed */
   activeRelationshipIndex: number | null;
   setActiveRelationshipIndex: (index: number | null) => void;
@@ -43,6 +47,9 @@ export function WidgetContextProvider({
   const [results, setResults] = useState<Record<number, RelationshipResult>>(
     {},
   );
+  const [relatedSelections, setRelatedSelections] = useState<
+    Record<number, DataRecord[]>
+  >({});
   const [activeRelationshipIndex, setActiveRelationshipIndex] = useState<
     number | null
   >(null);
@@ -51,8 +58,13 @@ export function WidgetContextProvider({
     setResults((prev) => ({ ...prev, [index]: result }));
   }
 
+  function setRelatedSelection(index: number, records: DataRecord[]) {
+    setRelatedSelections((prev) => ({ ...prev, [index]: records }));
+  }
+
   function clearResults() {
     setResults({});
+    setRelatedSelections({});
   }
 
   return (
@@ -65,6 +77,8 @@ export function WidgetContextProvider({
         results,
         setResult,
         clearResults,
+        relatedSelections,
+        setRelatedSelection,
         activeRelationshipIndex,
         setActiveRelationshipIndex,
       }}

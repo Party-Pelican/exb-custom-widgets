@@ -11,6 +11,7 @@
   "properties": {
     "useMapWidgets": true
   },
+  "dependency": "jimu-arcgis",
   "translatedLocales": ["en"],
   "defaultSize": {
     "width": 800,
