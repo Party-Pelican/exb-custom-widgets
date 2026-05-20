@@ -1,21 +1,34 @@
-import { useEffect, useState } from "react";
-import { Tabs, Tab } from "jimu-ui";
+import { useEffect, useRef, useState } from "react";
+import {
+  Tabs,
+  Tab,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  TextInput,
+} from "jimu-ui";
 import {
   DataRecord,
   DataSourceManager,
+  FeatureDataRecord,
+  FeatureLayerDataSource,
   FeatureLayerQueryParams,
   QueriableDataSource,
   React,
   UseDataSource,
 } from "jimu-core";
-import { RelationshipDefinition } from "../config";
-import { useWidgetContext } from "./context";
+import Graphic from "@arcgis/core/Graphic.js";
+import { ArcgisFeatures } from "@arcgis/map-components-react";
 import {
   CalciteTable,
   CalciteTableCell,
   CalciteTableHeader,
   CalciteTableRow,
 } from "calcite-components";
+import { RelationshipDefinition } from "../config";
+import { useWidgetContext } from "./context";
 
 type RenderRelatedRecordsProps = {
   widgetId: string;
@@ -138,41 +151,78 @@ async function fetchRelatedRecords(
   }
 }
 
-function RecordsTable({ records }: { records: DataRecord[] }) {
-  if (records.length === 0) {
-    return <div>No related records found.</div>;
+async function queryAllTargetRecords(
+  targetDataSource: UseDataSource,
+): Promise<DataRecord[]> {
+  const dsManager = DataSourceManager.getInstance();
+  const dataSource =
+    dsManager.getDataSource(targetDataSource.dataSourceId) ??
+    (await dsManager.createDataSourceByUseDataSource(targetDataSource));
+  if (!dataSource || !("query" in dataSource)) return [];
+  const result = await (dataSource as QueriableDataSource).query({
+    where: "1=1",
+    outFields: ["*"],
+  } as FeatureLayerQueryParams);
+  return result.records ?? [];
+}
+
+async function performRelate(
+  relDef: RelationshipDefinition,
+  sourceRecords: DataRecord[],
+  targetRecord: DataRecord,
+): Promise<void> {
+  const dsManager = DataSourceManager.getInstance();
+  const sourceValue = sourceRecords[0]?.getData()?.[relDef.sourceField];
+
+  if (relDef.type === "field-relate") {
+    const targetDs = dsManager.getDataSource(
+      relDef.targetDataSource.dataSourceId,
+    ) as unknown as FeatureLayerDataSource;
+    if (!targetDs?.layer) throw new Error("Target layer not available.");
+    const feature = (
+      targetRecord as unknown as FeatureDataRecord
+    ).getFeature() as __esri.Graphic;
+    if (!feature) throw new Error("Target feature not available.");
+    const updated = feature.clone();
+    updated.attributes[relDef.targetField] = sourceValue;
+    const result = await (targetDs.layer as __esri.FeatureLayer).applyEdits({
+      updateFeatures: [updated],
+    });
+    const errs = result.updateFeatureResults?.filter((r: any) => r.error);
+    if (errs?.length) {
+      throw new Error(errs[0].error?.message ?? "Update failed.");
+    }
+  } else {
+    const junctionDs = dsManager.getDataSource(
+      relDef.junctionDataSource.dataSourceId,
+    ) as unknown as FeatureLayerDataSource;
+    if (!junctionDs?.layer) throw new Error("Junction layer not available.");
+    const targetValue = targetRecord.getData()?.[relDef.targetField];
+    const newFeature = new Graphic({
+      attributes: {
+        [relDef.junctionSourceField]: sourceValue,
+        [relDef.junctionTargetField]: targetValue,
+      },
+    });
+    const result = await (junctionDs.layer as __esri.FeatureLayer).applyEdits({
+      addFeatures: [newFeature],
+    });
+    const errs = result.addFeatureResults?.filter((r: any) => r.error);
+    if (errs?.length) {
+      throw new Error(errs[0].error?.message ?? "Insert failed.");
+    }
   }
-
-  const columns = Object.keys(records[0].getData() ?? {});
-
-  return (
-    <CalciteTable caption="Related records" style={{ width: "100%" }}>
-      <CalciteTableRow slot="table-header">
-        {columns.map((col) => (
-          <CalciteTableHeader key={col} heading={col} />
-        ))}
-      </CalciteTableRow>
-      {records.map((record, i) => {
-        const data = record.getData() ?? {};
-        return (
-          <CalciteTableRow key={i}>
-            {columns.map((col) => (
-              <CalciteTableCell key={col}>
-                {String(data[col] ?? "")}
-              </CalciteTableCell>
-            ))}
-          </CalciteTableRow>
-        );
-      })}
-    </CalciteTable>
-  );
 }
 
 export default function RenderRelatedRecords(props: RenderRelatedRecordsProps) {
-  const { selectedDataRecords, setRelatedSelection } = useWidgetContext();
+  const { selectedDataRecords, setRelatedSelection, jimuMapView } =
+    useWidgetContext();
   const [relatedRecords, setRelatedRecordsState] = useState<
     Record<number, DataRecord[]>
   >({});
+  const featuresRefs = useRef<Record<number, HTMLArcgisFeaturesElement | null>>(
+    {},
+  );
 
   useEffect(() => {
     if (!selectedDataRecords?.length) {
@@ -203,16 +253,286 @@ export default function RenderRelatedRecords(props: RenderRelatedRecordsProps) {
     };
   }, [selectedDataRecords, props.relationshipDefinitions]);
 
+  // Drive ArcgisFeatures imperatively when records change
+  useEffect(() => {
+    for (const [indexStr, records] of Object.entries(relatedRecords)) {
+      const el = featuresRefs.current[Number(indexStr)];
+      if (!el) continue;
+      const graphics = records
+        .map(
+          (r) =>
+            (r as unknown as FeatureDataRecord).getFeature() as __esri.Graphic,
+        )
+        .filter(Boolean);
+      if (graphics.length > 0) {
+        el.open({ features: graphics });
+      } else {
+        el.clear();
+      }
+    }
+  }, [relatedRecords]);
+
+  const [relatingIndex, setRelatingIndex] = useState<number | null>(null);
+  const [pickerRecords, setPickerRecords] = useState<DataRecord[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerSelectedIndex, setPickerSelectedIndex] = useState<number | null>(
+    null,
+  );
+  const [pickerFilterText, setPickerFilterText] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (relatingIndex === null) {
+      setPickerRecords([]);
+      setPickerSelectedIndex(null);
+      setPickerFilterText("");
+      return;
+    }
+    const relDef = props.relationshipDefinitions[relatingIndex];
+    setPickerLoading(true);
+    queryAllTargetRecords(relDef.targetDataSource)
+      .then((records) => {
+        setPickerRecords(records);
+      })
+      .catch((err) =>
+        console.error("Error fetching target records for picker:", err),
+      )
+      .finally(() => setPickerLoading(false));
+  }, [relatingIndex, props.relationshipDefinitions]);
+
+  const map = jimuMapView?.view?.map;
+
+  if (!selectedDataRecords?.length) {
+    return null;
+  }
+
+  const activeRelDef =
+    relatingIndex !== null
+      ? props.relationshipDefinitions[relatingIndex]
+      : null;
+  const pickerColumns =
+    pickerRecords.length > 0
+      ? Object.keys(pickerRecords[0].getData() ?? {})
+      : [];
+  const pickerFilterLower = pickerFilterText.toLowerCase();
+  const filteredPickerRecords = pickerFilterLower
+    ? pickerRecords
+        .map((r, i) => ({ record: r, originalIndex: i }))
+        .filter(({ record }) =>
+          Object.values(record.getData() ?? {}).some((v) =>
+            String(v ?? "")
+              .toLowerCase()
+              .includes(pickerFilterLower),
+          ),
+        )
+    : pickerRecords.map((r, i) => ({ record: r, originalIndex: i }));
+  const pickerSelectedRecord =
+    pickerSelectedIndex !== null ? pickerRecords[pickerSelectedIndex] : null;
+
   return (
-    <Tabs type="tabs">
-      {props.relationshipDefinitions.map((relDef, index) => {
-        const records = relatedRecords[index] ?? [];
-        return (
-          <Tab key={index} id={`related-${index + 1}`} title={relDef.label}>
-            <RecordsTable records={records} />
-          </Tab>
-        );
-      })}
-    </Tabs>
+    <>
+      <Tabs type="tabs">
+        {props.relationshipDefinitions.map((relDef, index) => {
+          const records = relatedRecords[index] ?? [];
+          return (
+            <Tab key={index} id={`related-${index + 1}`} title={relDef.label}>
+              <Button
+                size="sm"
+                style={{ margin: "0.5rem 0" }}
+                onClick={() => setRelatingIndex(index)}
+              >
+                Relate
+              </Button>
+              {records.length === 0 && <div>No related records found.</div>}
+              {map && (
+                <div
+                  style={{
+                    display: records.length === 0 ? "none" : "block",
+                  }}
+                >
+                  <ArcgisFeatures
+                    hideCloseButton
+                    hideActionBar
+                    featureNavigationTop
+                    initialDisplayMode="list"
+                    map={map}
+                    ref={(el: HTMLArcgisFeaturesElement | null) => {
+                      featuresRefs.current[index] = el;
+                      if (el && records.length > 0) {
+                        const graphics = records
+                          .map(
+                            (r) =>
+                              (
+                                r as unknown as FeatureDataRecord
+                              ).getFeature() as __esri.Graphic,
+                          )
+                          .filter(Boolean);
+                        if (graphics.length > 0)
+                          el.open({ features: graphics });
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </Tab>
+          );
+        })}
+      </Tabs>
+
+      <Modal
+        isOpen={relatingIndex !== null}
+        toggle={() => setRelatingIndex(null)}
+        size="xl"
+      >
+        <ModalHeader toggle={() => setRelatingIndex(null)}>
+          {activeRelDef ? `Relate — ${activeRelDef.label}` : ""}
+        </ModalHeader>
+        <ModalBody>
+          {pickerLoading ? (
+            <div>Loading records…</div>
+          ) : pickerRecords.length === 0 ? (
+            <div>No records found in target layer.</div>
+          ) : (
+            <>
+              <TextInput
+                placeholder="Search…"
+                value={pickerFilterText}
+                onChange={(e) => {
+                  setPickerSelectedIndex(null);
+                  setPickerFilterText(e.target.value);
+                }}
+                style={{ marginBottom: "0.5rem", width: "100%" }}
+              />
+              <div
+                style={{
+                  overflowX: "auto",
+                  overflowY: "auto",
+                  maxHeight: "55vh",
+                }}
+              >
+                <CalciteTable
+                  key={`picker-table-${relatingIndex}`}
+                  bordered
+                  striped
+                  selectionMode="single"
+                  caption={
+                    activeRelDef
+                      ? `Select a ${activeRelDef.label} record to relate`
+                      : ""
+                  }
+                  style={{ width: "100%" }}
+                >
+                  <CalciteTableRow slot="table-header">
+                    {pickerColumns.map((col) => (
+                      <CalciteTableHeader key={col} heading={col} />
+                    ))}
+                  </CalciteTableRow>
+                  {filteredPickerRecords.map(({ record, originalIndex }) => {
+                    const data = record.getData() ?? {};
+                    return (
+                      <CalciteTableRow
+                        key={originalIndex}
+                        selected={pickerSelectedIndex === originalIndex}
+                        onClick={() =>
+                          setPickerSelectedIndex(
+                            pickerSelectedIndex === originalIndex
+                              ? null
+                              : originalIndex,
+                          )
+                        }
+                        style={{ cursor: "pointer" }}
+                      >
+                        {pickerColumns.map((col) => (
+                          <CalciteTableCell key={col}>
+                            <div
+                              title={String(data[col] ?? "")}
+                              style={{
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                maxWidth: "200px",
+                              }}
+                            >
+                              {String(data[col] ?? "")}
+                            </div>
+                          </CalciteTableCell>
+                        ))}
+                      </CalciteTableRow>
+                    );
+                  })}
+                </CalciteTable>
+              </div>
+              {filteredPickerRecords.length === 0 && (
+                <div style={{ padding: "0.5rem", color: "#666" }}>
+                  No records match your search.
+                </div>
+              )}
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter style={{ flexDirection: "column", alignItems: "stretch" }}>
+          {saveError && (
+            <div
+              style={{
+                color: "#c00",
+                marginBottom: "0.5rem",
+                fontSize: "0.875rem",
+              }}
+            >
+              {saveError}
+            </div>
+          )}
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Button
+              color="primary"
+              disabled={pickerSelectedRecord === null || isSaving}
+              onClick={async () => {
+                if (!pickerSelectedRecord || !activeRelDef) return;
+                const idx = relatingIndex!;
+                setIsSaving(true);
+                setSaveError(null);
+                try {
+                  await performRelate(
+                    activeRelDef,
+                    selectedDataRecords,
+                    pickerSelectedRecord,
+                  );
+                  const freshRecords = await fetchRelatedRecords(
+                    activeRelDef,
+                    selectedDataRecords,
+                  );
+                  setRelatedSelection(idx, freshRecords);
+                  setRelatedRecordsState((prev) => ({
+                    ...prev,
+                    [idx]: freshRecords,
+                  }));
+                  setRelatingIndex(null);
+                } catch (err) {
+                  setSaveError(
+                    err instanceof Error
+                      ? err.message
+                      : "An unknown error occurred.",
+                  );
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+            >
+              {isSaving ? "Saving…" : "Confirm"}
+            </Button>
+            <Button disabled={isSaving} onClick={() => setRelatingIndex(null)}>
+              Cancel
+            </Button>
+          </div>
+        </ModalFooter>
+      </Modal>
+    </>
   );
 }

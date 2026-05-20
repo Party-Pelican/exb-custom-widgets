@@ -61,18 +61,24 @@ export default function RenderSourceSelection({
         onSelectionChange={handleSelectionChange}
       />
       {jimuMapView?.view && jimuMapView.view?.map && (
-        <ArcgisFeatures
-          hideCloseButton
-          initialDisplayMode="list"
-          goToOverride={(view, goToParams) => {
-            console.log("goToOverride called with:");
-            console.log(view);
-            console.log(goToParams);
+        <div
+          style={{
+            display: selectedDataRecords.length === 0 ? "none" : "block",
           }}
-          includeDefaultActions={false}
-          map={jimuMapView.view.map}
-          ref={featuresRef}
-        />
+        >
+          <ArcgisFeatures
+            hideCloseButton
+            initialDisplayMode="list"
+            goToOverride={(view, goToParams) => {
+              console.log("goToOverride called with:");
+              console.log(view);
+              console.log(goToParams);
+            }}
+            includeDefaultActions={false}
+            map={jimuMapView.view.map}
+            ref={featuresRef}
+          />
+        </div>
       )}
     </>
   );
