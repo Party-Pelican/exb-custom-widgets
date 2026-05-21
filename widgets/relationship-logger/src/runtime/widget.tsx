@@ -20,6 +20,7 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
   const [selectedRecords, setSelectedRecords] = useState<DataRecord[]>([]);
   const [relatedRecordsByDs, setRelatedRecordsByDs] =
     useState<RelatedRecordsByDs>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const sourceDataSource = useMemo(
     () =>
@@ -55,66 +56,74 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
       return;
     }
 
-    let isMounted = true;
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    let pending = selectedRecords.length;
 
-    Promise.all(
-      selectedRecords.map(async (sourceRecord) => {
-        const results = await Promise.all(
-          relationships.map(async (relDef, index) => {
-            console.group(
-              `[relationship-logger] Querying relationship [${index}]: "${relDef.label}" for record "${sourceRecord.getId()}"`,
+    setIsLoading(true);
+    setRelatedRecordsByDs({});
+
+    // Process each source record independently so results appear as they arrive
+    // rather than waiting for all records to finish (avoids Promise.all stall).
+    selectedRecords.forEach((sourceRecord) => {
+      Promise.all(
+        relationships.map(async (relDef) => {
+          try {
+            const records = await fetchRelatedRecords(
+              relDef,
+              [sourceRecord],
+              signal,
             );
-            console.log("  Definition:", relDef);
-            try {
-              const records = await fetchRelatedRecords(relDef, [sourceRecord]);
-              console.log(`  → ${records.length} related record(s):`);
-              records.forEach((r, i) => console.log(`    [${i}]`, r.getData()));
-              console.groupEnd();
-              return { dsId: relDef.targetDataSource.dataSourceId, records };
-            } catch (err) {
-              console.error(`  → Error fetching related records:`, err);
-              console.groupEnd();
-              return {
-                dsId: relDef.targetDataSource.dataSourceId,
-                records: [] as DataRecord[],
-              };
-            }
-          }),
-        );
-        return { sourceRecordId: sourceRecord.getId(), results };
-      }),
-    ).then((allResults) => {
-      if (!isMounted) return;
-
-      // Group by source record ID, then by target datasource ID.
-      // Use a Map for O(n) deduplication by record ID.
-      const grouped: RelatedRecordsByDs = {};
-      for (const { sourceRecordId, results } of allResults) {
-        grouped[sourceRecordId] = {};
-        for (const { dsId, records } of results) {
-          const unique = new Map(records.map((r) => [r.getId(), r]));
-          grouped[sourceRecordId][dsId] = [...unique.values()];
-        }
-      }
-
-      setRelatedRecordsByDs(grouped);
-
-      console.group("[relationship-logger] Related records by source record");
-      for (const [srcId, byDs] of Object.entries(grouped)) {
-        console.group(`  Source: ${srcId}`);
-        for (const [dsId, records] of Object.entries(byDs)) {
-          console.log(
-            `    ${dsId}: ${records.length} record(s)`,
-            records.map((r) => r.getData()),
+            return { dsId: relDef.targetDataSource.dataSourceId, records };
+          } catch (err) {
+            if ((err as DOMException).name === "AbortError") throw err;
+            console.error(`  → Error fetching related records:`, err);
+            return {
+              dsId: relDef.targetDataSource.dataSourceId,
+              records: [] as DataRecord[],
+            };
+          }
+        }),
+      )
+        .then((results) => {
+          if (signal.aborted) return;
+          // Deduplicate by record ID and merge into state immediately.
+          const perDs: Record<string, DataRecord[]> = {};
+          for (const { dsId, records } of results) {
+            const unique = new Map(records.map((r) => [r.getId(), r]));
+            perDs[dsId] = [...unique.values()];
+          }
+          setRelatedRecordsByDs((prev) => ({
+            ...prev,
+            [sourceRecord.getId()]: perDs,
+          }));
+          console.group(
+            `[relationship-logger] Related records for source: ${sourceRecord.getId()}`,
           );
-        }
-        console.groupEnd();
-      }
-      console.groupEnd();
+          for (const [dsId, records] of Object.entries(perDs)) {
+            console.log(
+              `  ${dsId}: ${records.length} record(s)`,
+              records.map((r) => r.getData()),
+            );
+          }
+          console.groupEnd();
+        })
+        .catch((err: unknown) => {
+          if ((err as DOMException).name !== "AbortError") {
+            console.error("[relationship-logger] Unexpected error:", err);
+          }
+        })
+        .finally(() => {
+          if (signal.aborted) return;
+          pending--;
+          if (pending === 0) setIsLoading(false);
+        });
     });
 
     return () => {
-      isMounted = false;
+      console.log("[relationship-logger] Aborting pending fetches...");
+      abortController.abort();
+      setIsLoading(false);
     };
   }, [selectedRecords, relationships]);
 
@@ -142,6 +151,7 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
         selectedSourceRecords={selectedRecords}
         relatedRecordsByDs={relatedRecordsByDs}
         relationships={relationships}
+        isLoading={isLoading}
       />
     </div>
   );

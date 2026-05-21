@@ -9,11 +9,13 @@ import type { RelationshipDefinition } from "../config";
 
 export async function getOrCreateDs(
   ds: UseDataSource,
+  signal?: AbortSignal,
 ): Promise<QueriableDataSource | null> {
   const mgr = DataSourceManager.getInstance();
   const found =
     mgr.getDataSource(ds.dataSourceId) ??
     (await mgr.createDataSourceByUseDataSource(ds));
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
   if (!found || !("query" in found)) return null;
   return found as QueriableDataSource;
 }
@@ -21,13 +23,14 @@ export async function getOrCreateDs(
 export async function queryDs(
   ds: UseDataSource,
   where: string,
+  signal?: AbortSignal,
 ): Promise<DataRecord[]> {
-  const src = await getOrCreateDs(ds);
+  const src = await getOrCreateDs(ds, signal);
   if (!src) return [];
-  const result = await src.query({
-    where,
-    outFields: ["*"],
-  } as FeatureLayerQueryParams);
+  const result = await src.queryAll(
+    { where, outFields: ["*"] } as FeatureLayerQueryParams,
+    signal,
+  );
   return result.records ?? [];
 }
 
@@ -45,6 +48,7 @@ export function buildWhereClause(
 export async function fetchRelatedRecords(
   relDef: RelationshipDefinition,
   sourceRecords: DataRecord[],
+  signal?: AbortSignal,
 ): Promise<DataRecord[]> {
   const sourceIds = sourceRecords.map((r) =>
     r.getFieldValue(relDef.sourceField),
@@ -52,7 +56,7 @@ export async function fetchRelatedRecords(
 
   if (relDef.type === "field-relate") {
     const where = buildWhereClause(relDef.targetField, sourceIds);
-    return queryDs(relDef.targetDataSource, where);
+    return queryDs(relDef.targetDataSource, where, signal);
   }
 
   // junction-table: first query the junction, then resolve target IDs
@@ -60,10 +64,11 @@ export async function fetchRelatedRecords(
   const junctionRecords = await queryDs(
     relDef.junctionDataSource,
     junctionWhere,
+    signal,
   );
   const targetIds = junctionRecords.map(
     (r) => r.getData()?.[relDef.junctionTargetField],
   );
   const targetWhere = buildWhereClause(relDef.targetField, targetIds);
-  return queryDs(relDef.targetDataSource, targetWhere);
+  return queryDs(relDef.targetDataSource, targetWhere, signal);
 }

@@ -7,9 +7,14 @@ import {
   TreeCollapseStyle,
   type TreeItemType,
   type TreeExpandItemActionDataType,
+  type CommandType,
+  type CommandActionDataType,
   _TreeItem,
 } from "jimu-ui/basic/list-tree";
+import { Loading, LoadingType } from "jimu-ui";
 import type { RelatedRecordsByDs } from "../types";
+import PlusIcon from "jimu-icons/svg/outlined/editor/plus.svg";
+import TrashIcon from "jimu-icons/svg/outlined/editor/trash.svg";
 
 // ─── module-level tree-building helpers ──────────────────────────────────────
 
@@ -42,6 +47,14 @@ function buildGroupNode(
         itemStateTitle: displayField
           ? String(rel.getFieldValue(displayField) ?? rel.getId())
           : rel.getId(),
+        itemStateCommands: [
+          {
+            key: "remove-related",
+            label: "Remove related record",
+            onlyShowOnHover: true,
+            iconProps: { icon: TrashIcon, size: 12 },
+          } as CommandType,
+        ],
       }),
     ),
   };
@@ -72,6 +85,14 @@ function buildSourceRecordNode(
       ? String(record.getFieldValue(displayField) ?? record.getId())
       : record.getId(),
     itemStateExpanded: expandedKeys[record.getId()] ?? true,
+    itemStateCommands: [
+      {
+        key: "add-related",
+        label: "Add related record",
+        onlyShowOnHover: true,
+        iconProps: { icon: PlusIcon, size: 12 },
+      } as CommandType,
+    ],
     itemChildren: relatedChildren,
   };
 }
@@ -82,6 +103,7 @@ interface RenderRelationshipsProps {
   selectedSourceRecords: DataRecord[];
   relatedRecordsByDs?: RelatedRecordsByDs;
   relationships?: RelationshipDefinition[];
+  isLoading?: boolean;
 }
 
 export default function RenderRelationships(props: RenderRelationshipsProps) {
@@ -89,10 +111,24 @@ export default function RenderRelationships(props: RenderRelationshipsProps) {
     selectedSourceRecords,
     relatedRecordsByDs,
     relationships = [],
+    isLoading = false,
   } = props;
   const firstDs = selectedSourceRecords[0]?.dataSource ?? null;
 
   const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
+
+  const handleClickItemCommand = useCallback(
+    (actionData: CommandActionDataType, _refComponent: _TreeItem) => {
+      const { command, data } = actionData as CommandActionDataType & {
+        data?: { itemJsons?: TreeItemType[] };
+      };
+      const itemKey = data?.itemJsons?.[0]?.itemKey;
+      console.log(
+        `[relationship-logger] command: ${command.key}, itemKey: ${itemKey}`,
+      );
+    },
+    [],
+  );
 
   const handleExpandItem = useCallback(
     (actionData: TreeExpandItemActionDataType, refComponent: _TreeItem) => {
@@ -146,13 +182,27 @@ export default function RenderRelationships(props: RenderRelationshipsProps) {
   );
 
   return selectedSourceRecords.length === 0 ? null : (
-    <Tree
-      treeAlignmentType={TreeAlignmentType.Intact}
-      collapseStyle={TreeCollapseStyle.Arrow}
-      dndEnabled={false}
-      isMultiSelection={false}
-      rootItemJson={rootItemJson}
-      onExpandItem={handleExpandItem}
-    />
+    <div>
+      <Tree
+        treeAlignmentType={TreeAlignmentType.Intact}
+        collapseStyle={TreeCollapseStyle.Arrow}
+        dndEnabled={false}
+        isMultiSelection={false}
+        rootItemJson={rootItemJson}
+        onExpandItem={handleExpandItem}
+        onClickItemCommand={handleClickItemCommand}
+      />
+      {isLoading && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            padding: "4px 0",
+          }}
+        >
+          <Loading type={LoadingType.Secondary} width={16} height={16} />
+        </div>
+      )}
+    </div>
   );
 }
