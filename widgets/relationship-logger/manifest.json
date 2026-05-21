@@ -1,0 +1,20 @@
+{
+  "name": "relationship-logger",
+  "label": "Relationship Logger",
+  "type": "widget",
+  "version": "1.0.0",
+  "exbVersion": "1.17.0",
+  "author": "",
+  "description": "Headless widget that logs relationship queries to the browser console for testing.",
+  "copyright": "",
+  "license": "",
+  "properties": {
+    "useMapWidgets": true
+  },
+  "dependency": "jimu-arcgis",
+  "translatedLocales": ["en"],
+  "defaultSize": {
+    "width": 300,
+    "height": 80
+  }
+}
