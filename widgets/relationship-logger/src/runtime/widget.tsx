@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArcGISQueriableDataSource,
   DataSource,
   DataSourceComponent,
   Immutable,
@@ -8,9 +9,14 @@ import {
   type DataRecord,
   type ImmutableArray,
 } from "jimu-core";
+import { JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
 import { type IMConfig, type RelationshipDefinition } from "../config";
 import RenderRelationships from "./components/renderRelationships";
-import { fetchRelatedRecords } from "./utils";
+import {
+  fetchRelatedRecords,
+  removeRelatedRecord,
+  addRelatedRecord,
+} from "./utils";
 import type { RelatedRecordsByDs } from "./types";
 
 export type { RelatedRecordsByDs } from "./types";
@@ -21,6 +27,8 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
   const [relatedRecordsByDs, setRelatedRecordsByDs] =
     useState<RelatedRecordsByDs>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [jimuMapView, setJimuMapView] = useState<JimuMapView | null>(null);
+  const [sourceHasLayer, setSourceHasLayer] = useState(false);
 
   const sourceDataSource = useMemo(
     () =>
@@ -133,8 +141,75 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
     setSelectedRecords(selected);
   }
 
+  const handleRemoveRelatedRecord = useCallback(
+    async (
+      sourceRecord: DataRecord,
+      targetRecord: DataRecord,
+      relDef: RelationshipDefinition,
+    ) => {
+      try {
+        await removeRelatedRecord(relDef, sourceRecord, targetRecord);
+        setRelatedRecordsByDs((prev) => {
+          const sourceId = sourceRecord.getId();
+          const dsId = relDef.targetDataSource.dataSourceId;
+          return {
+            ...prev,
+            [sourceId]: {
+              ...prev[sourceId],
+              [dsId]: (prev[sourceId]?.[dsId] ?? []).filter(
+                (r) => r.getId() !== targetRecord.getId(),
+              ),
+            },
+          };
+        });
+      } catch (err) {
+        console.error(
+          "[relationship-logger] Failed to remove related record:",
+          err,
+        );
+      }
+    },
+    [],
+  );
+
+  const handleAddRelatedRecord = useCallback(
+    async (
+      sourceRecord: DataRecord,
+      relDef: RelationshipDefinition,
+      targetRecords: DataRecord[],
+    ) => {
+      await addRelatedRecord(relDef, sourceRecord, targetRecords);
+      // Optimistic update: merge newly linked records into the tree
+      setRelatedRecordsByDs((prev) => {
+        const sourceId = sourceRecord.getId();
+        const dsId = relDef.targetDataSource.dataSourceId;
+        const existing = prev[sourceId]?.[dsId] ?? [];
+        const existingIds = new Set(existing.map((r) => r.getId()));
+        const newRecords = targetRecords.filter(
+          (r) => !existingIds.has(r.getId()),
+        );
+        return {
+          ...prev,
+          [sourceId]: {
+            ...prev[sourceId],
+            [dsId]: [...existing, ...newRecords],
+          },
+        };
+      });
+    },
+    [],
+  );
+
   return (
     <div className="jimu-widget">
+      {/* Map view listener */}
+      {props.useMapWidgetIds?.[0] && (
+        <JimuMapViewComponent
+          useMapWidgetId={props.useMapWidgetIds[0]}
+          onActiveViewChange={(view) => setJimuMapView(view ?? null)}
+        />
+      )}
+
       {/* Data source listener */}
       {sourceDataSource && (
         <DataSourceComponent
@@ -142,6 +217,9 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
           widgetId={props.id}
           onDataSourceCreated={(ds) => {
             dsRef.current = ds;
+            setSourceHasLayer(
+              !!(ds as unknown as ArcGISQueriableDataSource)?.layer,
+            );
           }}
           onSelectionChange={handleSelectionChange}
         />
@@ -152,6 +230,9 @@ export default function Widget(props: AllWidgetProps<IMConfig>) {
         relatedRecordsByDs={relatedRecordsByDs}
         relationships={relationships}
         isLoading={isLoading}
+        jimuMapView={sourceHasLayer ? jimuMapView : null}
+        onRemoveRelatedRecord={handleRemoveRelatedRecord}
+        onAddRelatedRecord={handleAddRelatedRecord}
       />
     </div>
   );
