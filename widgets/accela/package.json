@@ -1,0 +1,13 @@
+{
+  "name": "accela-parcel-direct",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "build:worker": "node scripts/build-worker.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

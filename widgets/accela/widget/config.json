@@ -1,0 +1,10 @@
+{
+  "parcelLayerUrl": "",
+  "apnField": "APN",
+  "maxParcels": 500,
+  "accelaAppId": "",
+  "accelaAccessToken": "",
+  "accelaAgency": "ONT",
+  "accelaEnvironment": "NONPROD1",
+  "accelaModules": "Building,Planning"
+}

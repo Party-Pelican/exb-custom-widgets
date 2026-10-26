@@ -1,0 +1,19 @@
+{
+  "name": "accela",
+  "label": "Accela Parcel Search",
+  "type": "widget",
+  "version": "1.2.0",
+  "exbVersion": "1.16.0",
+  "author": "City GIS",
+  "description": "Draw an area to find Accela permits by intersecting parcel APNs.",
+  "copyright": "",
+  "license": "",
+  "properties": {},
+  "dependency": ["jimu-arcgis"],
+  "settingDependency": ["jimu-arcgis"],
+  "translatedLocales": ["en"],
+  "defaultSize": {
+    "width": 400,
+    "height": 620
+  }
+}
